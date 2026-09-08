@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+.venv/
+__pycache__/
+
+# Variables de entorno
+.env
+.env.local
+.env.production
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+node_modules/
+
+# Build
+.next/
+dist/
+build/

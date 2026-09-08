@@ -1,0 +1,57 @@
+{
+  "app": {
+    "title": "Sistema de Gestión de Almacenes",
+    "welcome": "Bienvenido"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "warehouses": "Almacenes",
+    "products": "Productos",
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión"
+  },
+  "warehouses": {
+    "title": "Almacenes",
+    "subtitle": "Gestiona tus almacenes",
+    "name": "Nombre",
+    "district": "Distrito",
+    "address": "Dirección",
+    "manager": "Encargado",
+    "phone": "Teléfono",
+    "add": "Agregar Almacén",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "no_warehouses": "No hay almacenes registrados"
+  },
+  "products": {
+    "title": "Productos",
+    "subtitle": "Gestiona tu inventario",
+    "name": "Nombre",
+    "code": "Código",
+    "category": "Categoría",
+    "stock": "Stock",
+    "price": "Precio",
+    "min_stock": "Stock Mínimo",
+    "warehouse": "Almacén",
+    "search": "Buscar productos...",
+    "add": "Agregar Producto",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "filters": "Filtros",
+    "apply_filters": "Aplicar Filtros",
+    "all_warehouses": "Todos los almacenes",
+    "select_warehouse": "Seleccionar Almacén",
+    "no_products": "No hay productos registrados",
+    "actions": "Acciones"
+  },
+  "dashboard": {
+    "subtitle": "Resumen general de tu inventario",
+    "update": "Actualizar",
+    "total_products": "Total Productos",
+    "total_stock": "Stock Total",
+    "total_warehouses": "Total Almacenes",
+    "low_stock": "Stock Bajo",
+    "stock_by_warehouse": "Stock por Almacén",
+    "category_distribution": "Distribución por Categoría"
+  }
+}

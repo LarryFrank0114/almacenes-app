@@ -1,0 +1,57 @@
+{
+  "app": {
+    "title": "仓库管理系统",
+    "welcome": "欢迎"
+  },
+  "nav": {
+    "dashboard": "仪表板",
+    "warehouses": "仓库",
+    "products": "产品",
+    "login": "登录",
+    "logout": "登出"
+  },
+  "warehouses": {
+    "title": "仓库",
+    "subtitle": "管理您的仓库",
+    "name": "名称",
+    "district": "区域",
+    "address": "地址",
+    "manager": "负责人",
+    "phone": "电话",
+    "add": "添加仓库",
+    "edit": "编辑",
+    "delete": "删除",
+    "no_warehouses": "暂无仓库"
+  },
+  "products": {
+    "title": "产品",
+    "subtitle": "管理您的库存",
+    "name": "名称",
+    "code": "代码",
+    "category": "类别",
+    "stock": "库存",
+    "price": "价格",
+    "min_stock": "最低库存",
+    "warehouse": "仓库",
+    "search": "搜索产品...",
+    "add": "添加产品",
+    "edit": "编辑",
+    "delete": "删除",
+    "filters": "筛选",
+    "apply_filters": "应用筛选",
+    "all_warehouses": "所有仓库",
+    "select_warehouse": "选择仓库",
+    "no_products": "暂无产品",
+    "actions": "操作"
+  },
+  "dashboard": {
+    "subtitle": "库存总览",
+    "update": "更新",
+    "total_products": "总产品数",
+    "total_stock": "总库存",
+    "total_warehouses": "总仓库数",
+    "low_stock": "库存不足",
+    "stock_by_warehouse": "各仓库库存",
+    "category_distribution": "类别分布"
+  }
+}

@@ -1,0 +1,270 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    @apply bg-crystal-dark text-white;
+    font-family: 'Inter', sans-serif;
+    background-image: 
+      radial-gradient(ellipse at 10% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 80%, rgba(255, 0, 229, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(0, 255, 135, 0.03) 0%, transparent 70%);
+    min-height: 100vh;
+  }
+
+  /* Scrollbar personalizado */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-crystal-dark/50;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-neon-blue/30 rounded-full;
+    border: 1px solid rgba(0, 212, 255, 0.1);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-neon-blue/50;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Principal */
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-hover {
+    @apply transition-all duration-300;
+  }
+
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 48px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Glassmorphism con borde neón */
+  .glass-neon-blue {
+    background: rgba(0, 212, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    box-shadow: 
+      0 8px 32px rgba(0, 212, 255, 0.1),
+      inset 0 1px 0 rgba(0, 212, 255, 0.1);
+  }
+
+  .glass-neon-pink {
+    background: rgba(255, 0, 229, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 0, 229, 0.15);
+    box-shadow: 
+      0 8px 32px rgba(255, 0, 229, 0.1),
+      inset 0 1px 0 rgba(255, 0, 229, 0.1);
+  }
+
+  .glass-neon-green {
+    background: rgba(0, 255, 135, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(0, 255, 135, 0.15);
+    box-shadow: 
+      0 8px 32px rgba(0, 255, 135, 0.1),
+      inset 0 1px 0 rgba(0, 255, 135, 0.1);
+  }
+
+  /* Textos Neón */
+  .neon-text-blue {
+    color: #00d4ff;
+    text-shadow: 
+      0 0 20px rgba(0, 212, 255, 0.3),
+      0 0 40px rgba(0, 212, 255, 0.1);
+  }
+
+  .neon-text-pink {
+    color: #ff00e5;
+    text-shadow: 
+      0 0 20px rgba(255, 0, 229, 0.3),
+      0 0 40px rgba(255, 0, 229, 0.1);
+  }
+
+  .neon-text-green {
+    color: #00ff87;
+    text-shadow: 
+      0 0 20px rgba(0, 255, 135, 0.3),
+      0 0 40px rgba(0, 255, 135, 0.1);
+  }
+
+  .neon-text-white {
+    color: #ffffff;
+    text-shadow: 
+      0 0 30px rgba(255, 255, 255, 0.1),
+      0 0 60px rgba(255, 255, 255, 0.05);
+  }
+
+  /* Tarjetas de estadísticas */
+  .stat-card {
+    @apply glass rounded-2xl p-6 glass-hover;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Botones Glassmorphism */
+  .btn-glass {
+    @apply px-6 py-2.5 rounded-xl font-medium transition-all duration-300;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-glass:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-neon {
+    @apply px-6 py-2.5 rounded-xl font-medium transition-all duration-300;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(255, 0, 229, 0.15));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.05);
+  }
+
+  .btn-neon:hover {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.25), rgba(255, 0, 229, 0.25));
+    border-color: rgba(0, 212, 255, 0.4);
+    box-shadow: 
+      0 0 40px rgba(0, 212, 255, 0.1),
+      inset 0 0 20px rgba(0, 212, 255, 0.05);
+    transform: translateY(-2px);
+  }
+
+  /* Inputs Glassmorphism */
+  .input-glass {
+    @apply w-full px-4 py-3 rounded-xl transition-all duration-300;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: white;
+  }
+
+  .input-glass:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.05);
+  }
+
+  .input-glass::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Tablas Glassmorphism */
+  .table-glass {
+    @apply w-full;
+  }
+
+  .table-glass th {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .table-glass td {
+    @apply px-6 py-4 whitespace-nowrap text-sm;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  .table-glass tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  /* Badges */
+  .badge-neon {
+    @apply px-2 py-1 rounded-full text-xs font-medium;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.15);
+    color: #00d4ff;
+  }
+
+  .badge-neon-pink {
+    @apply px-2 py-1 rounded-full text-xs font-medium;
+    background: rgba(255, 0, 229, 0.1);
+    border: 1px solid rgba(255, 0, 229, 0.15);
+    color: #ff00e5;
+  }
+
+  .badge-neon-green {
+    @apply px-2 py-1 rounded-full text-xs font-medium;
+    background: rgba(0, 255, 135, 0.1);
+    border: 1px solid rgba(0, 255, 135, 0.15);
+    color: #00ff87;
+  }
+
+  /* =============================================
+   MEJORAR SELECTS EN MODO OSCURO
+   ============================================= */
+select.input-glass {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+select.input-glass option {
+  background-color: #0a0a0f;
+  color: #ffffff;
+  padding: 8px 12px;
+}
+
+select.input-glass:focus {
+  outline: none;
+  border-color: rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.05);
+}
+
+select.input-glass:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Estilo para selects dentro de formularios */
+select.input-glass optgroup,
+select.input-glass option {
+  background-color: #0a0a0f;
+  color: #ffffff;
+}
+}
