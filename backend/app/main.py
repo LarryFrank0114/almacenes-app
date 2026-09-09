@@ -20,8 +20,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",     # Frontend en desarrollo (React)
         "http://127.0.0.1:3000",     # Frontend en desarrollo (alternativo)
-        "http://localhost:5173",     # Si usas Vite en vez de CRA
-        "https://almacenes-app-five.vercel.app",  # ✅ Tu dominio personalizado (producción)
+        "http://localhost:3000",
+        "https://almacenes-app-five.vercel.app",  # ✅ Tu dominio de producción
         "https://almacenes-app-larrys-projects-c1f6434d.vercel.app",  # ✅ URL de preview
     ],
     allow_credentials=True,
