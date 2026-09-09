@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine, Base
 from .routers import almacenes, items
 
-# Crear tablas en la base de datos
-Base.metadata.create_all(bind=engine)
+# ✅ QUITAR ESTO DE AQUÍ (ya no se ejecuta al importar)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Sistema de Gestión de Almacenes",
@@ -20,7 +20,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",     # Frontend en desarrollo (React)
         "http://127.0.0.1:3000",     # Frontend en desarrollo (alternativo)
-        "http://localhost:3000",
+        "http://localhost:5173",     # Si usas Vite en vez de CRA
         "https://almacenes-app-five.vercel.app",  # ✅ Tu dominio de producción
         "https://almacenes-app-larrys-projects-c1f6434d.vercel.app",  # ✅ URL de preview
     ],
@@ -34,6 +34,11 @@ app.add_middleware(
 # Incluir routers
 app.include_router(almacenes.router)
 app.include_router(items.router)
+
+# ✅ EVENTO DE STARTUP (se ejecuta después de que el servidor arranca)
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
 
 @app.get("/")
 def root():
