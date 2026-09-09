@@ -2,6 +2,9 @@ import { supabase } from './supabase';
 
 const CONFIG_KEY = 'empresa_config';
 
+// ✅ Verificar si estamos en el navegador (para evitar errores en SSR)
+const isBrowser = typeof window !== 'undefined';
+
 const DEFAULT_CONFIG = {
   nombre: 'Mi Empresa S.A.C.',
   slogan: 'Gestiona tu inventario de forma inteligente',
@@ -27,12 +30,15 @@ export const getConfig = async () => {
     if (error) {
       console.warn('⚠️ Error al obtener configuración:', error.message);
       
-      const localConfig = localStorage.getItem(CONFIG_KEY);
-      if (localConfig) {
-        try {
-          return JSON.parse(localConfig);
-        } catch (e) {
-          return DEFAULT_CONFIG;
+      // ✅ Solo usar localStorage si estamos en el navegador
+      if (isBrowser) {
+        const localConfig = localStorage.getItem(CONFIG_KEY);
+        if (localConfig) {
+          try {
+            return JSON.parse(localConfig);
+          } catch (e) {
+            return DEFAULT_CONFIG;
+          }
         }
       }
       return DEFAULT_CONFIG;
@@ -40,7 +46,11 @@ export const getConfig = async () => {
 
     if (data) {
       console.log('✅ Configuración cargada:', data);
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(data));
+      
+      // ✅ Solo guardar en localStorage si estamos en el navegador
+      if (isBrowser) {
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(data));
+      }
       return data;
     }
 
@@ -49,12 +59,16 @@ export const getConfig = async () => {
     return DEFAULT_CONFIG;
   } catch (error) {
     console.warn('⚠️ Error al cargar configuración:', error);
-    const localConfig = localStorage.getItem(CONFIG_KEY);
-    if (localConfig) {
-      try {
-        return JSON.parse(localConfig);
-      } catch (e) {
-        return DEFAULT_CONFIG;
+    
+    // ✅ Solo usar localStorage si estamos en el navegador
+    if (isBrowser) {
+      const localConfig = localStorage.getItem(CONFIG_KEY);
+      if (localConfig) {
+        try {
+          return JSON.parse(localConfig);
+        } catch (e) {
+          return DEFAULT_CONFIG;
+        }
       }
     }
     return DEFAULT_CONFIG;
@@ -68,7 +82,10 @@ export const saveConfig = async (config) => {
   try {
     console.log('📦 Guardando configuración:', config);
     
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    // ✅ Solo guardar en localStorage si estamos en el navegador
+    if (isBrowser) {
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    }
 
     const { data, error } = await supabase
       .from('configuracion')
@@ -248,7 +265,10 @@ export const deleteLogo = async () => {
 // ============================================
 export const resetConfig = async () => {
   try {
-    localStorage.removeItem(CONFIG_KEY);
+    // ✅ Solo usar localStorage si estamos en el navegador
+    if (isBrowser) {
+      localStorage.removeItem(CONFIG_KEY);
+    }
     await saveConfig(DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   } catch (error) {
