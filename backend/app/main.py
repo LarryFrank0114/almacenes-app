@@ -21,7 +21,9 @@ app.add_middleware(
         "http://localhost:3000",     # Frontend en desarrollo (React)
         "http://127.0.0.1:3000",     # Frontend en desarrollo (alternativo)
         "http://localhost:5173",     # Si usas Vite en vez de CRA
-        "https://almacenes-app-five.vercel.app",  # ✅ Tu dominio real de Vercel
+        "https://almacenes-app-five.vercel.app",  # ✅ Tu dominio personalizado
+        "https://almacenes-app-larrys-projects-c1f6434d.vercel.app",  # ✅ URL de preview
+    ],
     ],
     allow_credentials=True,
     allow_methods=["*"],             # Permite todos los métodos (GET, POST, PUT, DELETE, etc.)
