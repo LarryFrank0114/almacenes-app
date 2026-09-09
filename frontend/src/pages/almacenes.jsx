@@ -406,12 +406,22 @@ export default function Almacenes() {
         )}
       </div>
 
+      {/* ✅ MAPA CON ESTRUCTURA CORRECTA */}
       {warehouses.some(w => w.latitud && w.longitud) && (
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
             Ubicación de Almacenes
           </h2>
-          <MapaAlmacen almacenes={warehouses.filter(w => w.latitud && w.longitud)} />
+          <MapaAlmacen 
+            almacenes={warehouses
+              .filter(w => w.latitud && w.longitud)
+              .map(w => ({
+                ...w,
+                lat: w.latitud,
+                lng: w.longitud,
+              }))
+            } 
+          />
         </div>
       )}
     </div>
