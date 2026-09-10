@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import '../styles/globals.css';
 import { ThemeProvider } from '../components/ThemeProvider';
 import { AuthProvider } from '../hooks/useAuth';
@@ -6,11 +7,17 @@ import { Toaster } from 'react-hot-toast';
 import '../utils/i18n';
 
 function MyApp({ Component, pageProps }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} forcedTheme="dark">
       <AuthProvider>
         <div className="min-h-screen bg-crystal-dark text-white">
-          <Navbar />
+          {mounted && <Navbar />}
           <main className="max-w-7xl mx-auto px-4 py-6">
             <Component {...pageProps} />
           </main>
