@@ -14,7 +14,7 @@ import {
   FiMail
 } from 'react-icons/fi';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function Dashboard() {
   const router = useRouter();
