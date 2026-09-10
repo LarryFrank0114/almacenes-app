@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine, Base
-from .routers import almacenes, items, configuracion, usuarios  # ✅ Agregar los que faltan
+from .routers import almacenes, items, configuracion, usuarios, notificaciones
 
 app = FastAPI(
     title="Sistema de Gestión de Almacenes",
@@ -9,7 +9,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ✅ CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -26,18 +26,17 @@ app.add_middleware(
     max_age=3600,
 )
 
-# ✅ Routers
+# Routers
 app.include_router(almacenes.router)
 app.include_router(items.router)
-# app.include_router(configuracion.router)  # ← Si quieres activarlo
-# app.include_router(usuarios.router)      # ← Si quieres activarlo
+app.include_router(configuracion.router)
+app.include_router(usuarios.router)
+app.include_router(notificaciones.router)  # ✅ Nuevo
 
-# ✅ Startup
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
 
-# ✅ Rutas
 @app.get("/")
 def root():
     return {
@@ -45,7 +44,8 @@ def root():
         "version": "1.0.0",
         "endpoints": {
             "almacenes": "/almacenes/",
-            "items": "/items/"
+            "items": "/items/",
+            "notificaciones": "/notificaciones/"
         }
     }
 
