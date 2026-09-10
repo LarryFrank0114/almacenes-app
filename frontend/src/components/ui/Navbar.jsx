@@ -9,7 +9,7 @@ import { getConfig } from '../../services/configService';
 import { 
   FiLogOut, FiUser, FiHome,
   FiMap, FiBox, FiRefreshCw, FiBarChart2, 
-  FiUpload, FiUsers, FiSettings, FiChevronDown, FiX
+  FiUpload, FiUsers, FiSettings
 } from 'react-icons/fi';
 
 export default function Navbar() {
@@ -48,24 +48,22 @@ export default function Navbar() {
 
   if (!mounted) return null;
 
-  // ✅ MENÚS PRINCIPALES (más compactos)
+  // ✅ MENÚS CON i18n
   const mainNavItems = [
-    { href: '/', icon: FiHome, label: 'Dashboard' },
-    { href: '/almacenes', icon: FiMap, label: 'Almacenes' },
-    { href: '/productos', icon: FiBox, label: 'Productos' },
+    { href: '/', icon: FiHome, label: t('nav.dashboard') },
+    { href: '/almacenes', icon: FiMap, label: t('nav.warehouses') },
+    { href: '/productos', icon: FiBox, label: t('nav.products') },
   ];
 
-  // ✅ MENÚS SECUNDARIOS (con menos texto)
   const secondaryNavItems = [
-    { href: '/movimientos', icon: FiRefreshCw, label: 'Movimientos' },
-    { href: '/reportes', icon: FiBarChart2, label: 'Reportes' },
+    { href: '/movimientos', icon: FiRefreshCw, label: t('nav.movements') },
+    { href: '/reportes', icon: FiBarChart2, label: t('nav.reports') },
   ];
 
-  // ✅ MENÚS DE ADMIN (ahora en menú desplegable)
   const adminNavItems = [
-    { href: '/cargar-excel', icon: FiUpload, label: 'Carga' },
-    { href: '/usuarios', icon: FiUsers, label: 'Usuarios' },
-    { href: '/configuracion', icon: FiSettings, label: 'Config' },
+    { href: '/cargar-excel', icon: FiUpload, label: t('nav.upload') },
+    { href: '/usuarios', icon: FiUsers, label: t('nav.users') },
+    { href: '/configuracion', icon: FiSettings, label: t('nav.settings') },
   ];
 
   const changeLanguage = (lng) => {
@@ -82,7 +80,7 @@ export default function Navbar() {
     <nav className="glass sticky top-0 z-50 border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-14">
-          {/* LOGO Y NOMBRE DE EMPRESA (desde configService) */}
+          {/* LOGO Y NOMBRE DE EMPRESA */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 group">
               <div 
@@ -103,13 +101,13 @@ export default function Navbar() {
                   {companyConfig.nombre}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  {companyConfig.slogan || 'Sistema de Gestión'}
+                  {companyConfig.slogan || t('nav.subtitle')}
                 </span>
               </div>
             </Link>
           </div>
 
-          {/* ✅ NAV CENTRAL - MÁS LIMPIO */}
+          {/* NAV CENTRAL */}
           <div className="hidden md:flex items-center gap-0.5">
             {mainNavItems.map((item) => {
               const isActive = router.pathname === item.href;
@@ -130,7 +128,6 @@ export default function Navbar() {
               );
             })}
             
-            {/* Separador */}
             <span className="w-px h-6 bg-white/10 mx-1" />
             
             {secondaryNavItems.map((item) => {
@@ -153,14 +150,15 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* ✅ DERECHA - USUARIO + MENÚ ADMIN */}
+          {/* DERECHA - USUARIO + MENÚ ADMIN */}
           <div className="flex items-center gap-1.5">
             {/* Idioma */}
             <button
               onClick={() => changeLanguage(i18n.language === 'es' ? 'en' : i18n.language === 'en' ? 'zh' : 'es')}
               className="p-1.5 rounded-lg glass-hover text-gray-400 hover:text-white transition-colors text-sm"
+              title={t('nav.changeLanguage')}
             >
-              {languages[i18n.language]?.flag}
+              {languages[i18n.language]?.flag || '🇪🇸'}
             </button>
 
             {/* USUARIO */}
@@ -189,6 +187,7 @@ export default function Navbar() {
                 <button
                   onClick={signOut}
                   className="p-1 rounded-lg glass-hover text-gray-400 hover:text-neon-pink transition-colors"
+                  title={t('nav.logout')}
                 >
                   <FiLogOut className="w-3.5 h-3.5" />
                 </button>
@@ -196,11 +195,11 @@ export default function Navbar() {
             ) : (
               <Link href="/login" className="btn-neon text-white text-sm px-3 py-1.5">
                 <FiUser className="w-3.5 h-3.5 inline mr-1.5" />
-                Login
+                {t('nav.login')}
               </Link>
             )}
 
-            {/* ⚙️ MENÚ DE ADMIN (solo si es admin) */}
+            {/* MENÚ DE ADMIN */}
             {isAdmin() && (
               <div className="relative">
                 <button
@@ -237,7 +236,7 @@ export default function Navbar() {
                       className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 w-full"
                     >
                       <FiLogOut className="w-4 h-4" />
-                      Cerrar sesión
+                      {t('nav.logout')}
                     </button>
                   </div>
                 )}
@@ -247,7 +246,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ✅ MOBILE - Más simple */}
+      {/* MOBILE */}
       <div className="md:hidden glass border-t border-white/5">
         <div className="flex overflow-x-auto px-2 py-1.5 gap-1">
           {[...mainNavItems, ...secondaryNavItems, ...(isAdmin() ? adminNavItems : [])].map((item) => {
