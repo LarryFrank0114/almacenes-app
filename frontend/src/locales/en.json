@@ -28,7 +28,11 @@
     "viewAlerts": "View alerts",
     "loading": "Loading data...",
     "errorLoading": "Error loading statistics",
-    "thisMonth": "this month"
+    "thisMonth": "this month",
+    "sendAlerts": "Send alerts",
+    "sending": "Sending...",
+    "noLowStock": "No low stock products",
+    "notificationError": "Error sending notifications"
   },
   "products": {
     "title": "Products",
