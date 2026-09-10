@@ -28,7 +28,11 @@
     "viewAlerts": "查看警报",
     "loading": "加载数据中...",
     "errorLoading": "加载统计数据时出错",
-    "thisMonth": "本月"
+    "thisMonth": "本月",
+    "sendAlerts": "发送警报",
+    "sending": "发送中...",
+    "noLowStock": "没有低库存产品",
+    "notificationError": "发送通知时出错"
   },
   "products": {
     "title": "产品",
