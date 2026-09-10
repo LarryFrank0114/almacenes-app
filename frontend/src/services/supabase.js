@@ -1,31 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
-import env from '../config/env';
 
-// Usar la configuración centralizada
-const supabaseUrl = env.supabaseUrl;
-const supabaseKey = env.supabaseKey;
+// ✅ Usar variables de entorno directamente (sin archivo config/env.js)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Log de depuración
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔍 Inicializando Supabase:');
-  console.log('  URL:', supabaseUrl ? '✅ Presente' : '❌ Faltante');
-  console.log('  Key:', supabaseKey ? '✅ Presente' : '❌ Faltante');
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Faltan variables de entorno de Supabase');
+  console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅' : '❌');
+  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅' : '❌');
 }
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Error: Faltan variables de entorno de Supabase');
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Cliente para operaciones autenticadas
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+export default supabase;
