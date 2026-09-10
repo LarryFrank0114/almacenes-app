@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+import { useTranslation } from 'react-i18next';
 import { itemService, warehouseService } from '../services/api';
 import toast from 'react-hot-toast';
 import { 
@@ -7,13 +8,13 @@ import {
   FiPackage, 
   FiMapPin, 
   FiAlertTriangle, 
-  FiDollarSign, 
   FiRefreshCw,
   FiArrowRight
 } from 'react-icons/fi';
 
 export default function Dashboard() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalProductos: 0,
     stockTotal: 0,
@@ -52,7 +53,7 @@ export default function Dashboard() {
       });
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
-      toast.error('❌ Error al cargar estadísticas');
+      toast.error(t('dashboard.errorLoading'));
     } finally {
       setLoading(false);
     }
@@ -63,7 +64,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-neon-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-400 animate-pulse">Cargando datos...</p>
+          <p className="mt-4 text-gray-400 animate-pulse">{t('dashboard.loading')}</p>
         </div>
       </div>
     );
@@ -75,10 +76,10 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold neon-text-blue">
-            Bienvenido
+            {t('dashboard.welcome')}
           </h1>
           <p className="text-gray-400 mt-1">
-            Resumen general de tu inventario
+            {t('dashboard.subtitle')}
           </p>
         </div>
         <button
@@ -86,11 +87,11 @@ export default function Dashboard() {
           className="btn-neon text-white flex items-center gap-2 px-4 py-2"
         >
           <FiRefreshCw className="w-4 h-4" />
-          Actualizar
+          {t('dashboard.refresh')}
         </button>
       </div>
 
-      {/* Tarjetas de estadísticas - CLICABLES */}
+      {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Productos */}
         <button
@@ -106,11 +107,11 @@ export default function Dashboard() {
               OK
             </span>
           </div>
-          <p className="text-gray-400 text-sm">Total Productos</p>
+          <p className="text-gray-400 text-sm">{t('dashboard.totalProducts')}</p>
           <p className="text-3xl font-bold text-white mt-1">{stats.totalProductos}</p>
           <div className="mt-2 flex items-center gap-1 text-neon-blue text-xs opacity-0 group-hover:opacity-100 transition-opacity">
             <FiArrowRight className="w-3 h-3" />
-            Ver productos
+            {t('dashboard.viewProducts')}
           </div>
         </button>
 
@@ -128,11 +129,11 @@ export default function Dashboard() {
               OK
             </span>
           </div>
-          <p className="text-gray-400 text-sm">Stock Total</p>
+          <p className="text-gray-400 text-sm">{t('dashboard.totalStock')}</p>
           <p className="text-3xl font-bold text-neon-green mt-1">{stats.stockTotal}</p>
           <div className="mt-2 flex items-center gap-1 text-neon-green text-xs opacity-0 group-hover:opacity-100 transition-opacity">
             <FiArrowRight className="w-3 h-3" />
-            Ver stock
+            {t('dashboard.viewStock')}
           </div>
         </button>
 
@@ -150,11 +151,11 @@ export default function Dashboard() {
               OK
             </span>
           </div>
-          <p className="text-gray-400 text-sm">Total Almacenes</p>
+          <p className="text-gray-400 text-sm">{t('dashboard.totalWarehouses')}</p>
           <p className="text-3xl font-bold text-white mt-1">{stats.totalAlmacenes}</p>
           <div className="mt-2 flex items-center gap-1 text-neon-pink text-xs opacity-0 group-hover:opacity-100 transition-opacity">
             <FiArrowRight className="w-3 h-3" />
-            Ver almacenes
+            {t('dashboard.viewWarehouses')}
           </div>
         </button>
 
@@ -169,11 +170,11 @@ export default function Dashboard() {
             </div>
             <span className="text-xs text-neon-pink">{stats.stockBajo}</span>
           </div>
-          <p className="text-gray-400 text-sm">Stock Bajo</p>
+          <p className="text-gray-400 text-sm">{t('dashboard.lowStock')}</p>
           <p className="text-3xl font-bold text-neon-pink mt-1">{stats.stockBajo}</p>
           <div className="mt-2 flex items-center gap-1 text-neon-pink text-xs opacity-0 group-hover:opacity-100 transition-opacity">
             <FiArrowRight className="w-3 h-3" />
-            Ver alertas
+            {t('dashboard.viewAlerts')}
           </div>
         </button>
       </div>
@@ -182,14 +183,14 @@ export default function Dashboard() {
       <div className="glass rounded-2xl p-6 border border-white/5">
         <div className="flex flex-col md:flex-row md:justify-between gap-4">
           <div>
-            <p className="text-gray-400 text-sm">Valor total del inventario</p>
+            <p className="text-gray-400 text-sm">{t('dashboard.inventoryValue')}</p>
             <p className="text-4xl font-bold text-neon-blue mt-2">
               S/. {stats.valorInventario.toFixed(2)}
             </p>
           </div>
           <div className="flex items-center gap-2 text-green-400">
             <span className="text-sm bg-green-500/10 px-3 py-1 rounded-full">
-              +12.5% este mes
+              +12.5% {t('dashboard.thisMonth')}
             </span>
           </div>
         </div>
