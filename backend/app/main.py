@@ -3,39 +3,33 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine, Base
 from .routers import almacenes, items
 
-# ✅ QUITAR ESTO DE AQUÍ (ya no se ejecuta al importar)
-# Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title="Sistema de Gestión de Almacenes",
     description="API para gestionar múltiples almacenes e inventario",
     version="1.0.0"
 )
 
-# ============================================
-# CONFIGURACIÓN CORS CORRECTA (Para producción)
-# ============================================
+# ✅ CONFIGURACIÓN CORS (CON TU DOMINIO DE VERCEL)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",     # Frontend en desarrollo (React)
-        "http://127.0.0.1:3000",     # Frontend en desarrollo (alternativo)
-        "http://localhost:5173",     # Si usas Vite en vez de CRA
-        "https://almacenes-app-five.vercel.app",  # ✅ Tu dominio de producción
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "https://almacenes-app-five.vercel.app",  # ✅ TU DOMINIO DE PRODUCCIÓN
         "https://almacenes-app-larrys-projects-c1f6434d.vercel.app",  # ✅ URL de preview
     ],
     allow_credentials=True,
-    allow_methods=["*"],             # Permite todos los métodos (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],             # Permite todos los headers
-    expose_headers=["*"],            # Expone todos los headers
-    max_age=3600,                    # Cache de preflight por 1 hora
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
-# Incluir routers
 app.include_router(almacenes.router)
 app.include_router(items.router)
 
-# ✅ EVENTO DE STARTUP (se ejecuta después de que el servidor arranca)
+# ✅ EVENTO DE STARTUP
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
