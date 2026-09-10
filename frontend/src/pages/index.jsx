@@ -15,7 +15,7 @@ import {
   FiMail
 } from 'react-icons/fi';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = 'https://almacenes-app-production.up.railway.app';
 
 export default function Dashboard() {
   const router = useRouter();
