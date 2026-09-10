@@ -28,6 +28,10 @@
     "viewAlerts": "Ver alertas",
     "loading": "Cargando datos...",
     "errorLoading": "Error al cargar estadísticas",
+    "sendAlerts": "Enviar alertas",
+    "sending": "Enviando...",
+    "noLowStock": "No hay productos con stock bajo",
+    "notificationError": "Error al enviar notificaciones",
     "thisMonth": "este mes"
   },
   "products": {
