@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// ✅ Usar variables de entorno directamente (sin archivo config/env.js)
+// ✅ Usar variables de entorno directamente
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
