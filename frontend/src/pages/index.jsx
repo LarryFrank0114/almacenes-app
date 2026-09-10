@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'react-i18next';
 import { itemService, warehouseService } from '../services/api';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 import { 
   FiBox, 
@@ -9,8 +10,11 @@ import {
   FiMapPin, 
   FiAlertTriangle, 
   FiRefreshCw,
-  FiArrowRight
+  FiArrowRight,
+  FiMail
 } from 'react-icons/fi';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -23,6 +27,7 @@ export default function Dashboard() {
     valorInventario: 0
   });
   const [loading, setLoading] = useState(true);
+  const [sendingNotifications, setSendingNotifications] = useState(false);
 
   const navigateTo = (path) => {
     router.push(path);
@@ -34,6 +39,7 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
+      setLoading(true);
       const itemsRes = await itemService.getAll();
       const items = itemsRes.data || [];
       
@@ -56,6 +62,25 @@ export default function Dashboard() {
       toast.error(t('dashboard.errorLoading'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Enviar notificaciones de stock bajo por email
+  const sendLowStockNotifications = async () => {
+    try {
+      setSendingNotifications(true);
+      const response = await axios.post(`${API_URL}/notificaciones/low-stock/`);
+      
+      if (response.data.count === 0) {
+        toast.success('✅ ' + (t('dashboard.noLowStock') || 'No hay productos con stock bajo'));
+      } else {
+        toast.success(`✅ ${response.data.message || `Se enviaron ${response.data.count} notificaciones`}`);
+      }
+    } catch (error) {
+      console.error('Error al enviar notificaciones:', error);
+      toast.error('❌ ' + (t('dashboard.notificationError') || 'Error al enviar notificaciones'));
+    } finally {
+      setSendingNotifications(false);
     }
   };
 
@@ -82,16 +107,38 @@ export default function Dashboard() {
             {t('dashboard.subtitle')}
           </p>
         </div>
-        <button
-          onClick={fetchStats}
-          className="btn-neon text-white flex items-center gap-2 px-4 py-2"
-        >
-          <FiRefreshCw className="w-4 h-4" />
-          {t('dashboard.refresh')}
-        </button>
+        <div className="flex gap-2">
+          {/* ✅ Botón de notificaciones */}
+          <button
+            onClick={sendLowStockNotifications}
+            disabled={sendingNotifications}
+            className={`btn-glass text-white flex items-center gap-2 px-4 py-2 ${sendingNotifications ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {sendingNotifications ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                {t('dashboard.sending') || 'Enviando...'}
+              </>
+            ) : (
+              <>
+                <FiMail className="w-4 h-4" />
+                {t('dashboard.sendAlerts') || 'Enviar alertas'}
+              </>
+            )}
+          </button>
+
+          {/* ✅ Botón de actualizar */}
+          <button
+            onClick={fetchStats}
+            className="btn-neon text-white flex items-center gap-2 px-4 py-2"
+          >
+            <FiRefreshCw className="w-4 h-4" />
+            {t('dashboard.refresh')}
+          </button>
+        </div>
       </div>
 
-      {/* Tarjetas de estadísticas */}
+      {/* Tarjetas de estadísticas - CLICABLES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Productos */}
         <button
