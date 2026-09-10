@@ -70,7 +70,7 @@ export default function Dashboard() {
   const sendLowStockNotifications = async () => {
     try {
       setSendingNotifications(true);
-      const response = await axios.post(`${API_URL}/notificaciones/low-stock/`);
+      const response = await axios.post(`${API_URL}/notificaciones/low-stock/?t=${Date.now()}`);
       
       if (response.data.count === 0) {
         toast.success('✅ ' + (t('dashboard.noLowStock') || 'No hay productos con stock bajo'));
