@@ -38,13 +38,19 @@
     "allProviders": "所有供应商",
     "allCategories": "所有类别",
     "clear": "清除",
+    "refresh": "刷新",
     "code": "代码",
     "name": "名称",
     "description": "描述",
     "category": "类别",
     "stock": "库存",
+    "stockMin": "最低库存",
     "price": "价格",
+    "costPrice": "成本价",
+    "unit": "计量单位",
+    "location": "位置",
     "warehouse": "仓库",
+    "noWarehouse": "无仓库",
     "noProducts": "未找到产品",
     "showing": "显示",
     "of": "共",
@@ -52,6 +58,12 @@
     "delete": "删除产品",
     "save": "保存",
     "cancel": "取消",
-    "loading": "加载产品中..."
+    "loading": "加载产品中...",
+    "errorLoading": "加载产品时出错",
+    "saveSuccess": "✅ 产品已更新",
+    "saveError": "❌ 更新产品时出错",
+    "deleteSuccess": "✅ 产品已删除",
+    "deleteError": "❌ 删除产品时出错",
+    "confirmDelete": "您确定要删除此产品吗？"
   }
 }
