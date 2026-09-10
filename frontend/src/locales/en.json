@@ -38,13 +38,19 @@
     "allProviders": "All providers",
     "allCategories": "All categories",
     "clear": "Clear",
+    "refresh": "Refresh",
     "code": "Code",
     "name": "Name",
     "description": "Description",
     "category": "Category",
     "stock": "Stock",
+    "stockMin": "Min Stock",
     "price": "Price",
+    "costPrice": "Cost Price",
+    "unit": "Unit of Measure",
+    "location": "Location",
     "warehouse": "Warehouse",
+    "noWarehouse": "No warehouse",
     "noProducts": "No products found",
     "showing": "Showing",
     "of": "of",
@@ -52,6 +58,12 @@
     "delete": "Delete Product",
     "save": "Save",
     "cancel": "Cancel",
-    "loading": "Loading products..."
+    "loading": "Loading products...",
+    "errorLoading": "Error loading products",
+    "saveSuccess": "✅ Product updated",
+    "saveError": "❌ Error updating product",
+    "deleteSuccess": "✅ Product deleted",
+    "deleteError": "❌ Error deleting product",
+    "confirmDelete": "Are you sure you want to delete this product?"
   }
 }
