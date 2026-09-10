@@ -25,7 +25,6 @@ export default function Navbar() {
     primarycolor: '#00d4ff'
   });
 
-  // ✅ OBTENER CONFIGURACIÓN DESDE configService
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -50,20 +49,20 @@ export default function Navbar() {
 
   // ✅ MENÚS CON i18n
   const mainNavItems = [
-    { href: '/', icon: FiHome, label: t('nav.dashboard') },
-    { href: '/almacenes', icon: FiMap, label: t('nav.warehouses') },
-    { href: '/productos', icon: FiBox, label: t('nav.products') },
+    { href: '/', icon: FiHome, label: t('nav.dashboard', 'Dashboard') },
+    { href: '/almacenes', icon: FiMap, label: t('nav.warehouses', 'Almacenes') },
+    { href: '/productos', icon: FiBox, label: t('nav.products', 'Productos') },
   ];
 
   const secondaryNavItems = [
-    { href: '/movimientos', icon: FiRefreshCw, label: t('nav.movements') },
-    { href: '/reportes', icon: FiBarChart2, label: t('nav.reports') },
+    { href: '/movimientos', icon: FiRefreshCw, label: t('nav.movements', 'Movimientos') },
+    { href: '/reportes', icon: FiBarChart2, label: t('nav.reports', 'Reportes') },
   ];
 
   const adminNavItems = [
-    { href: '/cargar-excel', icon: FiUpload, label: t('nav.upload') },
-    { href: '/usuarios', icon: FiUsers, label: t('nav.users') },
-    { href: '/configuracion', icon: FiSettings, label: t('nav.settings') },
+    { href: '/cargar-excel', icon: FiUpload, label: t('nav.upload', 'Carga') },
+    { href: '/usuarios', icon: FiUsers, label: t('nav.users', 'Usuarios') },
+    { href: '/configuracion', icon: FiSettings, label: t('nav.settings', 'Config') },
   ];
 
   const changeLanguage = (lng) => {
@@ -101,7 +100,7 @@ export default function Navbar() {
                   {companyConfig.nombre}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  {companyConfig.slogan || t('nav.subtitle')}
+                  {companyConfig.slogan || t('nav.subtitle', 'Sistema de Gestión')}
                 </span>
               </div>
             </Link>
@@ -156,7 +155,6 @@ export default function Navbar() {
             <button
               onClick={() => changeLanguage(i18n.language === 'es' ? 'en' : i18n.language === 'en' ? 'zh' : 'es')}
               className="p-1.5 rounded-lg glass-hover text-gray-400 hover:text-white transition-colors text-sm"
-              title={t('nav.changeLanguage')}
             >
               {languages[i18n.language]?.flag || '🇪🇸'}
             </button>
@@ -187,7 +185,6 @@ export default function Navbar() {
                 <button
                   onClick={signOut}
                   className="p-1 rounded-lg glass-hover text-gray-400 hover:text-neon-pink transition-colors"
-                  title={t('nav.logout')}
                 >
                   <FiLogOut className="w-3.5 h-3.5" />
                 </button>
@@ -195,7 +192,7 @@ export default function Navbar() {
             ) : (
               <Link href="/login" className="btn-neon text-white text-sm px-3 py-1.5">
                 <FiUser className="w-3.5 h-3.5 inline mr-1.5" />
-                {t('nav.login')}
+                Login
               </Link>
             )}
 
@@ -236,7 +233,7 @@ export default function Navbar() {
                       className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 w-full"
                     >
                       <FiLogOut className="w-4 h-4" />
-                      {t('nav.logout')}
+                      {t('nav.logout', 'Cerrar sesión')}
                     </button>
                   </div>
                 )}
