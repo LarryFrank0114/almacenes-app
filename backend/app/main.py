@@ -9,7 +9,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ✅ CONFIGURACIÓN CORS (CON TU DOMINIO DE VERCEL)
+# ============================================
+# CONFIGURACIÓN CORS CORRECTA (Para producción)
+# ============================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -29,7 +31,6 @@ app.add_middleware(
 app.include_router(almacenes.router)
 app.include_router(items.router)
 
-# ✅ EVENTO DE STARTUP
 @app.on_event("startup")
 def on_startup():
     Base.metadata.create_all(bind=engine)
