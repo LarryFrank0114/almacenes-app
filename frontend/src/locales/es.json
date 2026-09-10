@@ -64,6 +64,33 @@
     "saveError": "❌ Error al actualizar producto",
     "deleteSuccess": "✅ Producto eliminado",
     "deleteError": "❌ Error al eliminar producto",
-    "confirmDelete": "¿Estás seguro de eliminar este producto?"
+    "confirmDelete": "¿Estás seguro de eliminar este producto?",
+    "exportExcel": "Excel",
+    "exportPDF": "PDF"
+  },
+  "warehouses": {
+    "title": "Almacenes",
+    "subtitle": "Gestiona tus almacenes",
+    "add": "Agregar Almacén",
+    "edit": "Editar Almacén",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "name": "Nombre",
+    "district": "Distrito",
+    "address": "Dirección",
+    "manager": "Encargado",
+    "phone": "Teléfono",
+    "latitude": "Latitud",
+    "longitude": "Longitud",
+    "image": "Imagen del Almacén",
+    "uploadImage": "Subir imagen",
+    "changeImage": "Cambiar imagen",
+    "noWarehouses": "No hay almacenes registrados",
+    "loading": "Cargando almacenes...",
+    "items": "items",
+    "openMaps": "Abrir en Google Maps",
+    "location": "Ubicación",
+    "exportExcel": "Excel"
   }
 }
