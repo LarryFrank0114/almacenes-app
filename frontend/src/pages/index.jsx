@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'react-i18next';
 import { itemService, warehouseService } from '../services/api';
-import axios from 'axios';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 import { 
   FiBox, 
@@ -15,8 +15,6 @@ import {
   FiArrowRight,
   FiMail
 } from 'react-icons/fi';
-
-const API_URL = 'https://almacenes-app-production.up.railway.app';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -68,10 +66,11 @@ export default function Dashboard() {
   };
 
   // ✅ Enviar notificaciones de stock bajo por email
+  // ✅ Usa `api.post` del servicio (que tiene el API_URL correcto con HTTPS)
   const sendLowStockNotifications = async () => {
     try {
       setSendingNotifications(true);
-      const response = await axios.post(`${API_URL}/notificaciones/low-stock/?t=${Date.now()}`);
+      const response = await api.post('/notificaciones/low-stock/');
       
       if (response.data.count === 0) {
         toast.success('✅ ' + (t('dashboard.noLowStock') || 'No hay productos con stock bajo'));
