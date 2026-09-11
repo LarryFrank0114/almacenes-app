@@ -28,7 +28,6 @@ export default function Productos() {
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   
   // Paginación (server-side)
@@ -108,7 +107,6 @@ export default function Productos() {
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedWarehouse('');
-    setSelectedProvider('');
     setSelectedCategory('');
     setCurrentPage(1);
   };
