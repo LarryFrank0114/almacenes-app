@@ -16,12 +16,11 @@ def test_email():
         html="<h1>¡Funciona!</h1><p>Las notificaciones por email están configuradas correctamente.</p>"
     )
     if not result.get("success"):
-    return {
-        "success": False,
-        "error": result.get("error"),
-        "message": "Error al enviar email. Revisa la configuración de Resend."
-    }
-
+        return {
+           "success": False,
+           "error": result.get("error"),
+           "message": "Error al enviar email. Revisa la configuración de Resend."
+         }
 
 @router.post("/low-stock/")
 def check_low_stock(
