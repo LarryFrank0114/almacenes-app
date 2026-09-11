@@ -1,4 +1,3 @@
-// v2 - API service
 import axios from 'axios';
 
 // ✅ URL hardcodeada para producción
@@ -20,14 +19,18 @@ export const warehouseService = {
   delete: (id) => api.delete(`/almacenes/${id}/`),
 };
 
-// Servicios para Items
+// ✅ Servicios para Items CON PAGINACIÓN
 export const itemService = {
+  // ✅ Nuevo método paginado
+  getPaginated: (params) => api.get('/items/', { params }),
+  // Compatibilidad con el método anterior
   getAll: (params) => api.get('/items/', { params }),
   getById: (id) => api.get(`/items/${id}/`),
   create: (data) => api.post('/items/', data),
   update: (id, data) => api.put(`/items/${id}/`, data),
   delete: (id) => api.delete(`/items/${id}/`),
   updateStock: (id, cantidad) => api.patch(`/items/${id}/stock`, null, { params: { cantidad } }),
+  getStats: () => api.get('/items/stats/count'),
 };
 
 // Servicios para Configuración
