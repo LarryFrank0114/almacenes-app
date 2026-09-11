@@ -69,5 +69,9 @@
     "deleteSuccess": "✅ 产品已删除",
     "deleteError": "❌ 删除产品时出错",
     "confirmDelete": "您确定要删除此产品吗？"
+  },
+    "users": {
+    "title": "用户",
+    "subtitle": "管理用户及其角色"
   }
 }
