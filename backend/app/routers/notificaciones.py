@@ -20,7 +20,7 @@ def test_email():
     return {"message": "Email enviado correctamente", "result": result}
 
 
-@router.post("/low-stock")
+@router.post("/low-stock/")
 def check_low_stock(db: Session = Depends(get_db)):
     """
     Verifica todos los productos con stock bajo y envía notificaciones.
