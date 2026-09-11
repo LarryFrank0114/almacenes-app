@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { warehouseService } from '../services/api';
@@ -16,7 +18,9 @@ import {
   FiSave,
   FiUpload,
   FiHome,
-  FiLoader
+  FiLoader,
+  FiEye,
+  FiLock
 } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
 
@@ -44,7 +48,7 @@ const openGoogleMaps = (lat, lng) => {
 
 export default function Almacenes() {
   const { t } = useTranslation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canManageWarehouses } = useAuth();
   
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +106,8 @@ export default function Almacenes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!isAdmin()) {
+    // ✅ Verificar permisos (solo admin puede gestionar almacenes)
+    if (!canManageWarehouses()) {
       toast.error('❌ Solo administradores pueden gestionar almacenes');
       return;
     }
@@ -168,7 +173,8 @@ export default function Almacenes() {
   };
 
   const handleDelete = async (id) => {
-    if (!isAdmin()) {
+    // ✅ Verificar permisos (solo admin puede eliminar)
+    if (!canManageWarehouses()) {
       toast.error('❌ Solo administradores pueden eliminar almacenes');
       return;
     }
@@ -205,6 +211,11 @@ export default function Almacenes() {
   };
 
   const handleEdit = (warehouse) => {
+    // ✅ Verificar permisos (solo admin puede editar)
+    if (!canManageWarehouses()) {
+      toast.error('❌ Solo administradores pueden editar almacenes');
+      return;
+    }
     setEditing(warehouse);
     setFormData({
       nombre: warehouse.nombre || '',
@@ -243,7 +254,8 @@ export default function Almacenes() {
             {t('warehouses.subtitle') || 'Gestiona tus almacenes'}
           </p>
         </div>
-        {isAdmin() && (
+        {/* ✅ Solo mostrar botón "Agregar" si puede gestionar almacenes */}
+        {canManageWarehouses() && (
           <button
             onClick={() => {
               setEditing(null);
@@ -257,6 +269,16 @@ export default function Almacenes() {
           </button>
         )}
       </div>
+
+      {/* ✅ Aviso para no-admins */}
+      {!canManageWarehouses() && (
+        <div className="glass rounded-2xl p-4 border border-yellow-500/30 bg-yellow-500/10 flex items-center gap-3">
+          <FiLock className="w-5 h-5 text-yellow-400" />
+          <p className="text-yellow-400 text-sm">
+            Solo los administradores pueden crear, editar o eliminar almacenes. Tienes acceso de solo lectura.
+          </p>
+        </div>
+      )}
 
       {showForm && (
         <div className="glass rounded-2xl p-6 border border-white/10 shadow-2xl animate-fade-in">
@@ -390,7 +412,8 @@ export default function Almacenes() {
                   </div>
                 </div>
 
-                {isAdmin() && (
+                {/* ✅ Solo mostrar botones de acción si puede gestionar almacenes */}
+                {canManageWarehouses() ? (
                   <div className="mt-4 flex gap-2">
                     <button onClick={() => handleEdit(warehouse)} className="flex-1 px-3 py-2 rounded-xl glass text-neon-blue border border-neon-blue/30 hover:border-neon-blue/60 transition-all flex items-center justify-center gap-2 text-sm">
                       <FiEdit2 className="w-4 h-4" /> Editar
@@ -398,6 +421,11 @@ export default function Almacenes() {
                     <button onClick={() => handleDelete(warehouse.id)} className="flex-1 px-3 py-2 rounded-xl glass text-neon-pink border border-neon-pink/30 hover:border-neon-pink/60 transition-all flex items-center justify-center gap-2 text-sm">
                       <FiTrash2 className="w-4 h-4" /> Eliminar
                     </button>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-gray-500 text-xs py-2">
+                    <FiEye className="w-4 h-4" />
+                    Solo lectura
                   </div>
                 )}
               </div>
