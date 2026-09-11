@@ -1,21 +1,23 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { 
   FiSearch, FiFilter, FiX, FiEdit2, FiTrash2, 
   FiChevronLeft, FiChevronRight, FiRefreshCw, FiBox,
-  FiEye
+  FiEye, FiChevronsLeft, FiChevronsRight
 } from 'react-icons/fi';
 import { itemService, warehouseService } from '../services/api';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50; // ✅ 50 productos por página
 
 export default function Productos() {
   const { t } = useTranslation();
   const { canEdit, canDelete } = useAuth();
+  
+  // Estados principales
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,18 +25,18 @@ export default function Productos() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showActionsModal, setShowActionsModal] = useState(false);
   
-  // Estados de filtros
+  // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
   const [selectedProvider, setSelectedProvider] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   
-  // Paginación
+  // Paginación (server-side)
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   
-  // Datos del formulario de edición
+  // Datos del formulario
   const [formData, setFormData] = useState({
     nombre: '',
     codigo: '',
@@ -49,23 +51,43 @@ export default function Productos() {
     almacen_id: ''
   });
 
+  // Cargar almacenes al inicio
   useEffect(() => {
-    fetchData();
     fetchWarehouses();
   }, []);
 
-  const fetchData = async () => {
+  // Cargar items cuando cambian los filtros o la página
+  useEffect(() => {
+    fetchItems();
+  }, [currentPage, searchTerm, selectedWarehouse, selectedCategory]);
+
+  // ✅ Función para cargar items (con paginación server-side)
+  const fetchItems = useCallback(async () => {
     try {
-      const res = await itemService.getAll();
-      setItems(res.data || []);
-      setTotalItems(res.data?.length || 0);
-      setTotalPages(Math.ceil((res.data?.length || 0) / PAGE_SIZE));
+      setLoading(true);
+      
+      const params = {
+        skip: (currentPage - 1) * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      };
+      
+      if (searchTerm) params.search = searchTerm;
+      if (selectedWarehouse) params.almacen_id = selectedWarehouse;
+      if (selectedCategory) params.categoria = selectedCategory;
+      
+      const res = await itemService.getPaginated(params);
+      
+      setItems(res.data.data || []);
+      setTotalItems(res.data.total || 0);
+      setTotalPages(res.data.pages || 1);
+      
     } catch (error) {
+      console.error('Error al cargar items:', error);
       toast.error(t('products.errorLoading'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchTerm, selectedWarehouse, selectedCategory, t]);
 
   const fetchWarehouses = async () => {
     try {
@@ -76,45 +98,11 @@ export default function Productos() {
     }
   };
 
-  // ✅ Filtrado en memoria
-  const filteredItems = useMemo(() => {
-    let result = items;
-    
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(item => 
-        (item.nombre?.toLowerCase().includes(term)) ||
-        (item.codigo?.toLowerCase().includes(term)) ||
-        (item.proveedor?.toLowerCase().includes(term)) ||
-        (item.categoria?.toLowerCase().includes(term))
-      );
-    }
-    
-    if (selectedWarehouse) {
-      result = result.filter(item => item.almacen_id === parseInt(selectedWarehouse));
-    }
-    
-    if (selectedProvider) {
-      result = result.filter(item => (item.categoria || item.proveedor) === selectedProvider);
-    }
-    
-    if (selectedCategory) {
-      result = result.filter(item => item.categoria === selectedCategory);
-    }
-    
-    return result;
-  }, [items, searchTerm, selectedWarehouse, selectedProvider, selectedCategory]);
-
-  // ✅ Proveedores y categorías únicos
-  const uniqueProviders = useMemo(() => {
-    const providers = items.map(item => item.proveedor || item.categoria).filter(Boolean);
-    return [...new Set(providers)];
-  }, [items]);
-
-  const uniqueCategories = useMemo(() => {
-    const categories = items.map(item => item.categoria).filter(Boolean);
-    return [...new Set(categories)];
-  }, [items]);
+  // ✅ Resetear a página 1 al cambiar filtros
+  const handleFilterChange = (setter) => (value) => {
+    setter(value);
+    setCurrentPage(1);
+  };
 
   // ✅ Limpiar filtros
   const handleClearFilters = () => {
@@ -125,7 +113,7 @@ export default function Productos() {
     setCurrentPage(1);
   };
 
-  // ✅ Abrir modal de opciones al hacer clic en la fila
+  // ✅ Abrir modal de opciones
   const handleRowClick = (item) => {
     setSelectedItem(item);
     setShowActionsModal(true);
@@ -175,7 +163,7 @@ export default function Productos() {
       await itemService.update(selectedItem.id, dataToSave);
       toast.success(t('products.saveSuccess'));
       setShowEditModal(false);
-      fetchData();
+      fetchItems();
     } catch (error) {
       toast.error(t('products.saveError'));
     }
@@ -192,17 +180,35 @@ export default function Productos() {
         await itemService.delete(id);
         toast.success(t('products.deleteSuccess'));
         setShowActionsModal(false);
-        fetchData();
+        fetchItems();
       } catch (error) {
         toast.error(t('products.deleteError'));
       }
     }
   };
 
-  // ✅ Paginación
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
+  // ✅ Navegación de páginas
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ✅ Generar botones de páginas (muestra 5 páginas alrededor de la actual)
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
   };
 
   if (loading && items.length === 0) {
@@ -218,40 +224,41 @@ export default function Productos() {
 
   return (
     <div className="p-4 md:p-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-display font-bold neon-text-blue">
             {t('products.title')}
           </h1>
-          <p className="text-gray-400 mt-1">{t('products.subtitle')}</p>
+          <p className="text-gray-400 mt-1">
+            {t('products.subtitle')} — <span className="text-neon-green font-semibold">{totalItems.toLocaleString()} productos</span>
+          </p>
         </div>
         <button
-          onClick={fetchData}
+          onClick={fetchItems}
           className="btn-neon text-white flex items-center gap-2 px-4 py-2"
         >
-          <FiRefreshCw className="w-4 h-4" />
+          <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           {t('products.refresh')}
         </button>
       </div>
 
-      {/* ===== FILTROS ===== */}
+      {/* Filtros */}
       <div className="glass rounded-2xl p-4 mb-6 border border-white/5">
         <div className="flex flex-col md:flex-row gap-3">
+          {/* Búsqueda */}
           <div className="flex-1 relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="text"
               placeholder={t('products.search')}
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleFilterChange(setSearchTerm)(e.target.value)}
               className="input-glass pl-10 pr-10 w-full"
             />
             {searchTerm && (
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => handleFilterChange(setSearchTerm)('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
               >
                 <FiX className="w-4 h-4" />
@@ -259,12 +266,10 @@ export default function Productos() {
             )}
           </div>
 
+          {/* Filtro Almacén */}
           <select
             value={selectedWarehouse}
-            onChange={(e) => {
-              setSelectedWarehouse(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => handleFilterChange(setSelectedWarehouse)(e.target.value)}
             className="input-glass px-3 py-2"
           >
             <option value="">{t('products.allWarehouses')}</option>
@@ -273,34 +278,20 @@ export default function Productos() {
             ))}
           </select>
 
-          <select
-            value={selectedProvider}
-            onChange={(e) => {
-              setSelectedProvider(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="input-glass px-3 py-2"
-          >
-            <option value="">{t('products.allProviders')}</option>
-            {uniqueProviders.map(provider => (
-              <option key={provider} value={provider}>{provider}</option>
-            ))}
-          </select>
-
+          {/* Filtro Categoría */}
           <select
             value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => handleFilterChange(setSelectedCategory)(e.target.value)}
             className="input-glass px-3 py-2"
           >
             <option value="">{t('products.allCategories')}</option>
-            {uniqueCategories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
+            <option value="DAFON FABRICACION S.A.C.">DAFON FABRICACION S.A.C.</option>
+            <option value="W & M MAQUINARIA S.A.C.">W & M MAQUINARIA S.A.C.</option>
+            <option value="CORPORACION ACEROS AREQUIPA S.A.">CORPORACION ACEROS AREQUIPA S.A.</option>
+            <option value="GRUPO HIDRAULICA S.A.C.">GRUPO HIDRAULICA S.A.C.</option>
           </select>
 
+          {/* Limpiar */}
           <button
             onClick={handleClearFilters}
             className="px-4 py-2 rounded-xl glass text-gray-400 hover:text-white flex items-center gap-2"
@@ -311,7 +302,7 @@ export default function Productos() {
         </div>
       </div>
 
-      {/* ===== TABLA ===== */}
+      {/* Tabla */}
       <div className="overflow-x-auto glass rounded-2xl border border-white/5">
         <table className="w-full text-left">
           <thead>
@@ -326,7 +317,7 @@ export default function Productos() {
             </tr>
           </thead>
           <tbody>
-            {filteredItems.length === 0 ? (
+            {items.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
                   <FiBox className="w-12 h-12 text-gray-600 mx-auto mb-3" />
@@ -334,19 +325,19 @@ export default function Productos() {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
+              items.map((item) => (
                 <tr 
                   key={item.id} 
                   className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
                   onClick={() => handleRowClick(item)}
                 >
                   <td className="px-4 py-3 text-gray-400 font-mono text-sm">{item.codigo}</td>
-                  <td className="px-4 py-3 text-white font-medium">{item.nombre}</td>
-                  <td className="px-4 py-3 text-gray-400 text-sm hidden lg:table-cell line-clamp-1">{item.descripcion}</td>
+                  <td className="px-4 py-3 text-white font-medium max-w-[200px] truncate">{item.nombre}</td>
+                  <td className="px-4 py-3 text-gray-400 text-sm hidden lg:table-cell max-w-[250px] truncate">{item.descripcion}</td>
                   <td className="px-4 py-3 text-gray-400 text-sm hidden md:table-cell">{item.categoria}</td>
                   <td className="px-4 py-3 text-white">{item.stock}</td>
                   <td className="px-4 py-3 text-neon-green hidden sm:table-cell">S/ {Number(item.precio || 0).toFixed(2)}</td>
-                  <td className="px-4 py-3 text-gray-400 text-sm">{item.almacen_nombre || item.almacen?.nombre || 'N/A'}</td>
+                  <td className="px-4 py-3 text-gray-400 text-sm">{item.almacen_nombre || 'N/A'}</td>
                 </tr>
               ))
             )}
@@ -354,40 +345,78 @@ export default function Productos() {
         </table>
       </div>
 
-      {/* ===== PAGINACIÓN ===== */}
-      <div className="flex items-center justify-between mt-6">
+      {/* Paginación */}
+      <div className="flex flex-col md:flex-row items-center justify-between mt-6 gap-4">
         <div className="text-sm text-gray-400">
-          {t('products.showing')} {filteredItems.length} {t('products.of')} {totalItems} {t('products.title').toLowerCase()}
+          Mostrando <span className="text-white font-semibold">{items.length}</span> de{' '}
+          <span className="text-white font-semibold">{totalItems.toLocaleString()}</span> productos
+          {' '}(página {currentPage} de {totalPages})
         </div>
-        <div className="flex gap-2">
+        
+        <div className="flex items-center gap-1">
+          {/* Primera página */}
           <button
-            onClick={() => handlePageChange(currentPage - 1)}
+            onClick={() => goToPage(1)}
             disabled={currentPage === 1}
-            className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-50"
+            className="px-2 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
+            title="Primera página"
+          >
+            <FiChevronsLeft className="w-4 h-4" />
+          </button>
+          
+          {/* Anterior */}
+          <button
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
           >
             <FiChevronLeft className="w-4 h-4" />
           </button>
-          <span className="px-4 py-2 rounded-lg glass text-white">
-            {currentPage} / {totalPages}
-          </span>
+          
+          {/* Números de página */}
+          {getPageNumbers().map(page => (
+            <button
+              key={page}
+              onClick={() => goToPage(page)}
+              className={`px-3 py-2 rounded-lg transition-all ${
+                page === currentPage
+                  ? 'bg-neon-blue text-white font-semibold'
+                  : 'glass text-gray-400 hover:text-white'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+          
+          {/* Siguiente */}
           <button
-            onClick={() => handlePageChange(currentPage + 1)}
+            onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-50"
+            className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
           >
             <FiChevronRight className="w-4 h-4" />
+          </button>
+          
+          {/* Última página */}
+          <button
+            onClick={() => goToPage(totalPages)}
+            disabled={currentPage === totalPages}
+            className="px-2 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
+            title="Última página"
+          >
+            <FiChevronsRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* ===== MODAL DE OPCIONES ===== */}
+      {/* Modal de opciones */}
       {showActionsModal && selectedItem && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="glass rounded-2xl w-full max-w-sm p-6 border border-white/10">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                 <FiBox className="w-5 h-5 text-neon-blue" />
-                {selectedItem.nombre}
+                <span className="truncate">{selectedItem.nombre}</span>
               </h2>
               <button
                 onClick={() => setShowActionsModal(false)}
@@ -398,7 +427,6 @@ export default function Productos() {
             </div>
             
             <div className="space-y-2">
-              {/* ✅ Solo mostrar Editar si puede editar */}
               {canEdit() && (
                 <button
                   onClick={() => handleEdit(selectedItem)}
@@ -409,7 +437,6 @@ export default function Productos() {
                 </button>
               )}
               
-              {/* ✅ Solo mostrar Eliminar si puede eliminar */}
               {canDelete() && (
                 <button
                   onClick={() => handleDelete(selectedItem.id)}
@@ -420,7 +447,6 @@ export default function Productos() {
                 </button>
               )}
 
-              {/* ✅ Si no puede hacer nada, mostrar mensaje */}
               {!canEdit() && !canDelete() && (
                 <div className="text-center text-gray-400 text-sm py-4">
                   <FiEye className="w-8 h-8 mx-auto mb-2 text-gray-600" />
@@ -436,7 +462,7 @@ export default function Productos() {
         </div>
       )}
 
-      {/* ===== MODAL DE EDICIÓN ===== */}
+      {/* Modal de edición */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="glass rounded-2xl w-full max-w-2xl p-6 border border-white/10 max-h-[90vh] overflow-y-auto">
