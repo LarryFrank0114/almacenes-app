@@ -1,9 +1,13 @@
+'use client';
+
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { 
   FiSearch, FiFilter, FiX, FiEdit2, FiTrash2, 
-  FiChevronLeft, FiChevronRight, FiRefreshCw, FiBox
+  FiChevronLeft, FiChevronRight, FiRefreshCw, FiBox,
+  FiEye
 } from 'react-icons/fi';
 import { itemService, warehouseService } from '../services/api';
 
@@ -11,6 +15,7 @@ const PAGE_SIZE = 20;
 
 export default function Productos() {
   const { t } = useTranslation();
+  const { canEdit, canDelete } = useAuth();
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +133,10 @@ export default function Productos() {
 
   // ✅ Abrir modal de edición
   const handleEdit = (item) => {
+    if (!canEdit()) {
+      toast.error('❌ No tienes permisos para editar productos');
+      return;
+    }
     setSelectedItem(item);
     setFormData({
       nombre: item.nombre || '',
@@ -149,6 +158,10 @@ export default function Productos() {
   // ✅ Guardar cambios
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!canEdit()) {
+      toast.error('❌ No tienes permisos para editar productos');
+      return;
+    }
     try {
       const dataToSave = {
         ...formData,
@@ -170,6 +183,10 @@ export default function Productos() {
 
   // ✅ Eliminar producto
   const handleDelete = async (id) => {
+    if (!canDelete()) {
+      toast.error('❌ Solo los administradores pueden eliminar productos');
+      return;
+    }
     if (confirm(t('products.confirmDelete'))) {
       try {
         await itemService.delete(id);
@@ -381,21 +398,35 @@ export default function Productos() {
             </div>
             
             <div className="space-y-2">
-              <button
-                onClick={() => handleEdit(selectedItem)}
-                className="w-full px-4 py-3 rounded-xl bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors flex items-center gap-2"
-              >
-                <FiEdit2 className="w-5 h-5" />
-                {t('products.edit')}
-              </button>
+              {/* ✅ Solo mostrar Editar si puede editar */}
+              {canEdit() && (
+                <button
+                  onClick={() => handleEdit(selectedItem)}
+                  className="w-full px-4 py-3 rounded-xl bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors flex items-center gap-2"
+                >
+                  <FiEdit2 className="w-5 h-5" />
+                  {t('products.edit')}
+                </button>
+              )}
               
-              <button
-                onClick={() => handleDelete(selectedItem.id)}
-                className="w-full px-4 py-3 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors flex items-center gap-2"
-              >
-                <FiTrash2 className="w-5 h-5" />
-                {t('products.delete')}
-              </button>
+              {/* ✅ Solo mostrar Eliminar si puede eliminar */}
+              {canDelete() && (
+                <button
+                  onClick={() => handleDelete(selectedItem.id)}
+                  className="w-full px-4 py-3 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors flex items-center gap-2"
+                >
+                  <FiTrash2 className="w-5 h-5" />
+                  {t('products.delete')}
+                </button>
+              )}
+
+              {/* ✅ Si no puede hacer nada, mostrar mensaje */}
+              {!canEdit() && !canDelete() && (
+                <div className="text-center text-gray-400 text-sm py-4">
+                  <FiEye className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+                  Solo tienes permisos de visualización
+                </div>
+              )}
             </div>
             
             <div className="mt-4 text-xs text-gray-500">
