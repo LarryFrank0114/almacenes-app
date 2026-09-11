@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '../services/supabase';
 
@@ -73,11 +75,9 @@ export function AuthProvider({ children }) {
         try {
           console.log('🖼️ Intentando obtener foto desde Google API...');
           
-          // 1. Obtener token de acceso
           const { data: { session } } = await supabase.auth.getSession();
           const accessToken = session?.access_token;
           
-          // 2. Obtener información del usuario desde Google
           const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { Authorization: `Bearer ${accessToken}` }
           });
@@ -92,7 +92,7 @@ export function AuthProvider({ children }) {
       }
 
       // ✅ EXTRAER NOMBRE DE GOOGLE
-      let rol = metadata?.rol || 'usuario';
+      let rol = metadata?.rol || 'viewer'; // ✅ CAMBIO: rol por defecto es 'viewer'
       let nombre = 
         metadata?.nombre || 
         metadata?.full_name || 
@@ -113,13 +113,13 @@ export function AuthProvider({ children }) {
         if (error) {
           console.warn('⚠️ Error en tabla usuarios:', error.message);
           
-          // Si no existe en la tabla, crearlo
+          // Si no existe en la tabla, crearlo con rol 'viewer' por defecto
           if (error.code === 'PGRST116') {
-            console.log('📝 Creando usuario en tabla...');
+            console.log('📝 Creando usuario en tabla con rol viewer...');
             const newUser = {
               email: user.email,
               nombre: nombre,
-              rol: rol,
+              rol: 'viewer', // ✅ CAMBIO: rol por defecto es 'viewer'
               activo: true,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
@@ -132,7 +132,8 @@ export function AuthProvider({ children }) {
             if (insertError) {
               console.warn('⚠️ Error al crear usuario:', insertError);
             } else {
-              console.log('✅ Usuario creado en tabla con rol:', rol);
+              console.log('✅ Usuario creado en tabla con rol: viewer');
+              rol = 'viewer';
             }
           }
         } else if (data) {
@@ -176,7 +177,7 @@ export function AuthProvider({ children }) {
         rol: rol,
         activo: true
       });
-      setUserRole(rol);  // ✅ ESTE ES EL ROL QUE SE USA PARA isAdmin()
+      setUserRole(rol);
 
     } catch (error) {
       console.error('❌ Error en fetchUserProfile:', error);
@@ -185,9 +186,9 @@ export function AuthProvider({ children }) {
         email: email,
         nombre: email?.split('@')[0] || 'Usuario',
         avatar: null,
-        rol: 'usuario'
+        rol: 'viewer' // ✅ CAMBIO: rol por defecto es 'viewer'
       });
-      setUserRole('usuario');
+      setUserRole('viewer');
     }
   };
 
@@ -246,7 +247,7 @@ export function AuthProvider({ children }) {
         options: {
           data: {
             nombre: userData?.nombre || email,
-            rol: 'usuario',
+            rol: 'viewer', // ✅ CAMBIO: rol por defecto es 'viewer'
             full_name: userData?.nombre || email
           }
         }
@@ -264,13 +265,13 @@ export function AuthProvider({ children }) {
               {
                 email: email,
                 nombre: userData?.nombre || email,
-                rol: 'usuario',
+                rol: 'viewer', // ✅ CAMBIO: rol por defecto es 'viewer'
                 activo: true,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               }
             ]);
-          console.log('✅ Usuario creado en tabla');
+          console.log('✅ Usuario creado en tabla con rol viewer');
           await fetchUserProfile(data.user);
         } catch (dbError) {
           console.error('❌ Error al crear usuario en tabla:', dbError);
@@ -298,10 +299,84 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ============================================
+  // ✅ FUNCIONES DE PERMISOS
+  // ============================================
+  
   const isAdmin = () => {
     const result = userRole === 'admin';
     console.log('🔍 Verificando isAdmin - userRole:', userRole, 'result:', result);
     return result;
+  };
+
+  const isEditor = () => {
+    return userRole === 'editor' || userRole === 'admin';
+  };
+
+  const isViewer = () => {
+    return userRole === 'viewer';
+  };
+
+  /**
+   * canCreate: Puede crear nuevos registros.
+   * - Admin: ✅
+   * - Editor: ✅
+   * - Viewer: ❌
+   */
+  const canCreate = () => {
+    return userRole === 'admin' || userRole === 'editor';
+  };
+
+  /**
+   * canEdit: Puede editar registros existentes.
+   * - Admin: ✅
+   * - Editor: ✅
+   * - Viewer: ❌
+   */
+  const canEdit = () => {
+    return userRole === 'admin' || userRole === 'editor';
+  };
+
+  /**
+   * canDelete: Puede eliminar registros.
+   * - Admin: ✅
+   * - Editor: ❌
+   * - Viewer: ❌
+   */
+  const canDelete = () => {
+    return userRole === 'admin';
+  };
+
+  /**
+   * canManageUsers: Puede gestionar usuarios (crear, editar, eliminar).
+   * - Admin: ✅
+   * - Editor: ❌
+   * - Viewer: ❌
+   */
+  const canManageUsers = () => {
+    return userRole === 'admin';
+  };
+
+  /**
+   * canManageWarehouses: Puede gestionar almacenes.
+   * - Admin: ✅
+   * - Editor: ❌
+   * - Viewer: ❌
+   */
+  const canManageWarehouses = () => {
+    return userRole === 'admin';
+  };
+
+  /**
+   * getRoleLabel: Devuelve el nombre legible del rol.
+   */
+  const getRoleLabel = () => {
+    const labels = {
+      admin: 'Administrador',
+      editor: 'Editor',
+      viewer: 'Visualizador'
+    };
+    return labels[userRole] || 'Usuario';
   };
 
   const value = {
@@ -309,12 +384,22 @@ export function AuthProvider({ children }) {
     userRole,
     userProfile,
     loading,
+    // Funciones existentes
     isAdmin,
     signIn,
     signUp,
     signOut,
     signInWithGoogle,
-    supabase
+    supabase,
+    // ✅ Nuevas funciones de permisos
+    isEditor,
+    isViewer,
+    canCreate,
+    canEdit,
+    canDelete,
+    canManageUsers,
+    canManageWarehouses,
+    getRoleLabel,
   };
 
   return (
