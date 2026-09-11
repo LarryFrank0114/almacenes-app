@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -13,12 +15,14 @@ import {
   FiXCircle,
   FiSearch,
   FiRefreshCw,
-  FiAlertTriangle
+  FiAlertTriangle,
+  FiEye,
+  FiUserPlus
 } from 'react-icons/fi';
 
 export default function Usuarios() {
   const router = useRouter();
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, canManageUsers, loading } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [search, setSearch] = useState('');
@@ -33,14 +37,14 @@ export default function Usuarios() {
         toast.error('Debes iniciar sesión');
         return;
       }
-      if (!isAdmin()) {
+      if (!canManageUsers()) {
         router.push('/');
-        toast.error('No tienes permisos de administrador');
+        toast.error('No tienes permisos para gestionar usuarios');
         return;
       }
       cargarUsuarios();
     }
-  }, [loading, user, isAdmin]);
+  }, [loading, user, canManageUsers]);
 
   const cargarUsuarios = async () => {
     try {
@@ -49,7 +53,6 @@ export default function Usuarios() {
 
       console.log('🔍 Cargando usuarios desde tabla usuarios...');
 
-      // ✅ Usar la tabla 'usuarios' directamente
       const { data, error } = await supabase
         .from('usuarios')
         .select('*')
@@ -120,6 +123,33 @@ export default function Usuarios() {
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
+  // ✅ Obtener badge según el rol
+  const getRolBadge = (rol) => {
+    const roles = {
+      admin: { 
+        label: '👑 Admin', 
+        color: 'bg-neon-blue/20 text-neon-blue border-neon-blue/30',
+        icon: FiShield
+      },
+      editor: { 
+        label: '✏️ Editor', 
+        color: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        icon: FiEdit2
+      },
+      viewer: { 
+        label: '👁️ Viewer', 
+        color: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+        icon: FiEye
+      }
+    };
+    const r = roles[rol] || roles.viewer;
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${r.color}`}>
+        {r.label}
+      </span>
+    );
+  };
+
   if (loading || cargando) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -137,7 +167,7 @@ export default function Usuarios() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold neon-text-blue">
-            Gestión de Usuarios
+            👥 Gestión de Usuarios
           </h1>
           <p className="text-gray-400 mt-1">
             Administra los usuarios y sus roles
@@ -266,8 +296,9 @@ export default function Usuarios() {
                               onChange={(e) => setEditRol(e.target.value)}
                               className="input-glass text-sm py-1 px-2"
                             >
-                              <option value="usuario">Usuario</option>
-                              <option value="admin">Admin</option>
+                              <option value="viewer">👁️ Viewer</option>
+                              <option value="editor">✏️ Editor</option>
+                              <option value="admin">👑 Admin</option>
                             </select>
                             <button
                               onClick={() => cambiarRol(usuario.id, editRol)}
@@ -283,13 +314,7 @@ export default function Usuarios() {
                             </button>
                           </div>
                         ) : (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            esAdmin
-                              ? 'bg-neon-blue/20 text-neon-blue border border-neon-blue/30'
-                              : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-                          }`}>
-                            {esAdmin ? '👑 Admin' : '👤 Usuario'}
-                          </span>
+                          getRolBadge(usuario.rol)
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -311,7 +336,7 @@ export default function Usuarios() {
                             <button
                               onClick={() => {
                                 setEditando(usuario.id);
-                                setEditRol(usuario.rol || 'usuario');
+                                setEditRol(usuario.rol || 'viewer');
                               }}
                               className="p-1.5 rounded-lg glass text-neon-blue hover:border-neon-blue/60 transition-all"
                               title="Cambiar rol"
@@ -352,8 +377,10 @@ export default function Usuarios() {
           <span>
             Mostrando {usuariosFiltrados.length} de {usuarios.length} usuarios
           </span>
-          <span>
-            {usuarios.filter(u => u.rol === 'admin').length} administradores
+          <span className="flex gap-3">
+            <span>👑 {usuarios.filter(u => u.rol === 'admin').length} admin</span>
+            <span>✏️ {usuarios.filter(u => u.rol === 'editor').length} editor</span>
+            <span>👁️ {usuarios.filter(u => u.rol === 'viewer').length} viewer</span>
           </span>
         </div>
       </div>
