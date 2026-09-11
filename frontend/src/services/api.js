@@ -21,7 +21,7 @@ export const warehouseService = {
 
 // ✅ Servicios para Items CON PAGINACIÓN
 export const itemService = {
-  // ✅ Nuevo método paginado
+  // ✅ Método paginado (el que usa productos.jsx)
   getPaginated: (params) => api.get('/items/', { params }),
   // Compatibilidad con el método anterior
   getAll: (params) => api.get('/items/', { params }),
