@@ -96,5 +96,9 @@
     "openMaps": "Open in Google Maps",
     "location": "Location",
     "exportExcel": "Excel"
-  }
+  },
+    "users": {
+    "title": "Users",
+    "subtitle": "Manage users and their roles"
+}
 }
