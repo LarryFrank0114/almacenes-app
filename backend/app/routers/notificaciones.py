@@ -17,22 +17,21 @@ def test_email():
     )
     if not result.get("success"):
         return {
-           "success": False,
-           "error": result.get("error"),
-           "message": "Error al enviar email. Revisa la configuración de Resend."
-         }
+            "success": False,
+            "error": result.get("error"),
+            "message": "Error al enviar email. Revisa la configuración de Resend."
+        }
+    return {"message": "Email enviado correctamente", "result": result}
+
 
 @router.post("/low-stock/")
 def check_low_stock(
-    limit: int = 10,  # ✅ Limitar a 10 productos por defecto
-    send_individual: bool = False,  # ✅ Enviar un solo email resumen
+    limit: int = 10,
+    send_individual: bool = False,
     db: Session = Depends(get_db)
 ):
     """
     Verifica todos los productos con stock bajo y envía notificaciones.
-    
-    - limit: Máximo de productos a incluir (default: 10)
-    - send_individual: Si es True, envía un email por producto. Si es False, envía un email resumen.
     """
     # Buscar productos con stock bajo
     low_stock_items = db.query(Item).filter(
@@ -48,7 +47,7 @@ def check_low_stock(
     if not low_stock_items:
         return {"message": "No hay productos con stock bajo", "count": 0, "total": 0}
 
-    # ✅ OPCIÓN 1: Email RESUMEN (más rápido, 1 solo email)
+    # ✅ OPCIÓN 1: Email RESUMEN
     if not send_individual:
         rows_html = ""
         for item in low_stock_items:
@@ -121,7 +120,11 @@ def check_low_stock(
         )
 
         if not result.get("success"):
-            raise HTTPException(status_code=500, detail=result.get("error"))
+            return {
+                "success": False,
+                "error": result.get("error"),
+                "message": "Error al enviar email. Revisa la configuración de Resend."
+            }
 
         return {
             "message": f"Se envió 1 email resumen con {len(low_stock_items)} productos (de {total_count} totales)",
@@ -130,7 +133,7 @@ def check_low_stock(
             "mode": "resumen"
         }
 
-    # ✅ OPCIÓN 2: Email INDIVIDUAL por producto (más lento)
+    # ✅ OPCIÓN 2: Email INDIVIDUAL por producto
     sent = []
     for item in low_stock_items:
         result = send_low_stock_alert(
