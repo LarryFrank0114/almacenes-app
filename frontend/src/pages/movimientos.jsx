@@ -1,43 +1,89 @@
-import { useEffect, useState } from 'react';
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { itemService, warehouseService } from '../services/api';
+import { itemService, warehouseService, movimientoService } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
-import { FiPlus, FiMinus, FiPackage, FiMapPin, FiClock } from 'react-icons/fi';
+import {
+  FiPlus, FiMinus, FiPackage, FiClock, FiTrash2, FiX,
+  FiCalendar, FiFileText, FiTruck, FiUser, FiChevronLeft,
+  FiChevronRight, FiRefreshCw, FiSearch, FiEye
+} from 'react-icons/fi';
+
+const PAGE_SIZE = 20;
 
 export default function Movimientos() {
   const { t } = useTranslation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  
+  // Estado del formulario
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [movimientos, setMovimientos] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Formulario principal
   const [formData, setFormData] = useState({
+    tipo: 'entrada',
+    fecha: new Date().toISOString().split('T')[0],
+    numero_documento: '',
+    proveedor: '',
+    destino: '',
+    observacion: '',
+  });
+  
+  // Lista de detalles (productos del movimiento)
+  const [detalles, setDetalles] = useState([]);
+  
+  // Producto actual que se está agregando
+  const [currentItem, setCurrentItem] = useState({
     item_id: '',
     cantidad: 1,
-    tipo: 'entrada',
-    observacion: ''
+    search: '',
   });
+  
+  // Filtros para el historial
+  const [filtros, setFiltros] = useState({
+    tipo: '',
+    fecha_desde: '',
+    fecha_hasta: '',
+    search: '',
+  });
+  
+  // Historial paginado
+  const [movimientos, setMovimientos] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  // Modal de detalle
+  const [selectedMovimiento, setSelectedMovimiento] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
+  // Cargar items y almacenes al inicio
   useEffect(() => {
-    fetchData();
+    fetchInitialData();
   }, []);
 
-  const fetchData = async () => {
+  // Cargar movimientos cuando cambia la página o los filtros
+  useEffect(() => {
+    fetchMovimientos();
+  }, [currentPage, filtros]);
+
+  const fetchInitialData = async () => {
     try {
-      setLoading(true);
       const [itemsRes, warehousesRes] = await Promise.all([
-        itemService.getAll({ limit: 5000 }), // ✅ Aumentado para traer todos
+        itemService.getAll({ limit: 5000 }),
         warehouseService.getAll()
       ]);
       
-      // ✅ CORRECCIÓN: Extraer el array del objeto paginado
-      const itemsData = Array.isArray(itemsRes.data) 
-        ? itemsRes.data 
+      const itemsData = Array.isArray(itemsRes.data)
+        ? itemsRes.data
         : (itemsRes.data?.data || []);
       
-      const warehousesData = Array.isArray(warehousesRes.data) 
-        ? warehousesRes.data 
+      const warehousesData = Array.isArray(warehousesRes.data)
+        ? warehousesRes.data
         : (warehousesRes.data?.data || []);
       
       setItems(itemsData);
@@ -50,52 +96,161 @@ export default function Movimientos() {
     }
   };
 
-  const handleMovimiento = async (e) => {
-    e.preventDefault();
-    if (!isAdmin()) {
-      toast.error('❌ Solo administradores pueden realizar movimientos');
+  const fetchMovimientos = useCallback(async () => {
+    try {
+      const params = {
+        skip: (currentPage - 1) * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      };
+      if (filtros.tipo) params.tipo = filtros.tipo;
+      if (filtros.fecha_desde) params.fecha_desde = filtros.fecha_desde;
+      if (filtros.fecha_hasta) params.fecha_hasta = filtros.fecha_hasta;
+      if (filtros.search) params.search = filtros.search;
+      
+      const res = await movimientoService.getAll(params);
+      setMovimientos(res.data.data || []);
+      setTotalItems(res.data.total || 0);
+      setTotalPages(res.data.pages || 1);
+    } catch (error) {
+      console.error('Error al cargar movimientos:', error);
+    }
+  }, [currentPage, filtros]);
+
+  // ============================================
+  // AGREGAR PRODUCTO AL MOVIMIENTO
+  // ============================================
+  const handleAddDetalle = () => {
+    if (!currentItem.item_id) {
+      toast.error('Selecciona un producto');
       return;
     }
+    if (!currentItem.cantidad || currentItem.cantidad <= 0) {
+      toast.error('Cantidad debe ser mayor a 0');
+      return;
+    }
+    
+    // Verificar que no esté ya agregado
+    if (detalles.some(d => d.item_id === parseInt(currentItem.item_id))) {
+      toast.error('Este producto ya está agregado');
+      return;
+    }
+    
+    const item = items.find(i => i.id === parseInt(currentItem.item_id));
+    if (!item) return;
+    
+    // Validar stock si es salida
+    if (formData.tipo === 'salida' && item.stock < currentItem.cantidad) {
+      toast.error(`Stock insuficiente. Disponible: ${item.stock}`);
+      return;
+    }
+    
+    setDetalles([
+      ...detalles,
+      {
+        item_id: parseInt(currentItem.item_id),
+        item_nombre: item.nombre,
+        item_codigo: item.codigo,
+        cantidad: parseFloat(currentItem.cantidad),
+        stock_actual: item.stock,
+        unidad_medida: item.unidad_medida || 'und'
+      }
+    ]);
+    
+    setCurrentItem({ item_id: '', cantidad: 1, search: '' });
+  };
 
+  const handleRemoveDetalle = (itemId) => {
+    setDetalles(detalles.filter(d => d.item_id !== itemId));
+  };
+
+  // ============================================
+  // REGISTRAR MOVIMIENTO
+  // ============================================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!isAdmin()) {
+      toast.error('❌ Solo administradores pueden registrar movimientos');
+      return;
+    }
+    if (detalles.length === 0) {
+      toast.error('Agrega al menos un producto');
+      return;
+    }
+    
+    // Validar campos según tipo
+    if (formData.tipo === 'salida' && !formData.destino) {
+      toast.error('El destino es obligatorio para salidas');
+      return;
+    }
+    
     try {
-      const cantidad = formData.tipo === 'entrada' 
-        ? parseInt(formData.cantidad) 
-        : -parseInt(formData.cantidad);
+      setSubmitting(true);
       
-      await itemService.updateStock(formData.item_id, cantidad);
-      toast.success(`✅ Movimiento registrado: ${formData.tipo}`);
+      const payload = {
+        tipo: formData.tipo,
+        fecha: formData.fecha,
+        numero_documento: formData.numero_documento || null,
+        proveedor: formData.tipo === 'entrada' ? (formData.proveedor || null) : null,
+        destino: formData.tipo === 'salida' ? (formData.destino || null) : null,
+        observacion: formData.observacion || null,
+        usuario_email: user?.email || null,
+        detalles: detalles.map(d => ({
+          item_id: d.item_id,
+          cantidad: d.cantidad,
+        })),
+      };
       
-      // Registrar en historial local
-      const item = items.find(i => i.id === parseInt(formData.item_id));
-      setMovimientos([
-        {
-          id: Date.now(),
-          item: item?.nombre || 'Producto',
-          cantidad: cantidad,
-          tipo: formData.tipo,
-          observacion: formData.observacion,
-          fecha: new Date().toLocaleString()
-        },
-        ...movimientos
-      ]);
-
+      await movimientoService.create(payload);
+      toast.success(`✅ Movimiento de ${formData.tipo} registrado (${detalles.length} productos)`);
+      
+      // Limpiar formulario
       setFormData({
-        item_id: '',
-        cantidad: 1,
         tipo: 'entrada',
-        observacion: ''
+        fecha: new Date().toISOString().split('T')[0],
+        numero_documento: '',
+        proveedor: '',
+        destino: '',
+        observacion: '',
       });
-      fetchData();
+      setDetalles([]);
+      setCurrentItem({ item_id: '', cantidad: 1, search: '' });
+      
+      // Recargar datos
+      fetchInitialData();
+      fetchMovimientos();
     } catch (error) {
-      console.error('Error al registrar movimiento:', error);
-      toast.error('❌ Error al registrar movimiento');
+      console.error('Error:', error);
+      toast.error(error.response?.data?.detail || '❌ Error al registrar movimiento');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // ✅ Validación: no renderizar tablas si items no es un array
-  const safeItems = Array.isArray(items) ? items : [];
-  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
-  const safeMovimientos = Array.isArray(movimientos) ? movimientos : [];
+  // ============================================
+  // UTILIDADES
+  // ============================================
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  };
+
+  const filteredItems = items.filter(i => {
+    if (!currentItem.search) return true;
+    const s = currentItem.search.toLowerCase();
+    return i.nombre?.toLowerCase().includes(s) || i.codigo?.toLowerCase().includes(s);
+  }).slice(0, 50);
 
   if (loading) {
     return (
@@ -111,138 +266,474 @@ export default function Movimientos() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold neon-text-blue">
-            Movimientos
-          </h1>
-          <p className="text-gray-400 mt-1">Registra y consulta movimientos de inventario</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-display font-bold neon-text-blue">Movimientos</h1>
+        <p className="text-gray-400 mt-1">Registra entradas y salidas con documentos y múltiples productos</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Formulario de movimiento */}
+        {/* ============================================ */}
+        {/* FORMULARIO */}
+        {/* ============================================ */}
         <div className="glass rounded-2xl p-6 border border-white/5">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <FiClock className="w-5 h-5 text-neon-blue" />
             Registrar Movimiento
           </h2>
-          <form onSubmit={handleMovimiento} className="space-y-4">
-            <select
-              value={formData.item_id}
-              onChange={(e) => setFormData({...formData, item_id: e.target.value})}
-              className="input-glass"
-              required
-            >
-              <option value="">Seleccionar producto</option>
-              {safeItems.map(item => (
-                <option key={item.id} value={item.id}>
-                  {item.codigo} - {item.nombre} (Stock: {item.stock})
-                </option>
-              ))}
-            </select>
-
-            <div className="grid grid-cols-2 gap-4">
-              <select
-                value={formData.tipo}
-                onChange={(e) => setFormData({...formData, tipo: e.target.value})}
-                className="input-glass"
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Tipo */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, tipo: 'entrada' })}
+                className={`py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition-all ${
+                  formData.tipo === 'entrada'
+                    ? 'bg-neon-green/20 text-neon-green border-2 border-neon-green'
+                    : 'glass text-gray-400 border-2 border-transparent'
+                }`}
               >
-                <option value="entrada">✅ Entrada</option>
-                <option value="salida">❌ Salida</option>
-              </select>
+                <FiPlus className="w-4 h-4" /> Entrada
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, tipo: 'salida' })}
+                className={`py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition-all ${
+                  formData.tipo === 'salida'
+                    ? 'bg-neon-pink/20 text-neon-pink border-2 border-neon-pink'
+                    : 'glass text-gray-400 border-2 border-transparent'
+                }`}
+              >
+                <FiMinus className="w-4 h-4" /> Salida
+              </button>
+            </div>
 
+            {/* Fecha + N° Documento */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1 flex items-center gap-1">
+                  <FiCalendar className="w-3 h-3" /> Fecha
+                </label>
+                <input
+                  type="date"
+                  value={formData.fecha}
+                  onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+                  className="input-glass w-full"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1 flex items-center gap-1">
+                  <FiFileText className="w-3 h-3" /> N° Documento
+                </label>
+                <input
+                  type="text"
+                  placeholder="Guía / Vale / Factura"
+                  value={formData.numero_documento}
+                  onChange={(e) => setFormData({ ...formData, numero_documento: e.target.value })}
+                  className="input-glass w-full"
+                />
+              </div>
+            </div>
+
+            {/* Proveedor (solo entrada) */}
+            {formData.tipo === 'entrada' && (
+              <div>
+                <label className="block text-xs text-gray-400 mb-1 flex items-center gap-1">
+                  <FiTruck className="w-3 h-3" /> Proveedor
+                </label>
+                <input
+                  type="text"
+                  placeholder="Nombre del proveedor"
+                  value={formData.proveedor}
+                  onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
+                  className="input-glass w-full"
+                />
+              </div>
+            )}
+
+            {/* Destino (solo salida) */}
+            {formData.tipo === 'salida' && (
+              <div>
+                <label className="block text-xs text-gray-400 mb-1 flex items-center gap-1">
+                  <FiTruck className="w-3 h-3" /> Destino *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Obra / Área / Cliente"
+                  value={formData.destino}
+                  onChange={(e) => setFormData({ ...formData, destino: e.target.value })}
+                  className="input-glass w-full"
+                  required
+                />
+              </div>
+            )}
+
+            {/* Observación */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Observación</label>
               <input
-                type="number"
-                placeholder="Cantidad"
-                value={formData.cantidad}
-                onChange={(e) => setFormData({...formData, cantidad: parseInt(e.target.value) || 1})}
-                className="input-glass"
-                required
-                min="1"
+                type="text"
+                placeholder="Opcional"
+                value={formData.observacion}
+                onChange={(e) => setFormData({ ...formData, observacion: e.target.value })}
+                className="input-glass w-full"
               />
             </div>
 
-            <input
-              type="text"
-              placeholder="Observación (opcional)"
-              value={formData.observacion}
-              onChange={(e) => setFormData({...formData, observacion: e.target.value})}
-              className="input-glass"
-            />
+            {/* ============================================ */}
+            {/* AGREGAR PRODUCTOS */}
+            {/* ============================================ */}
+            <div className="border-t border-white/10 pt-4">
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <FiPackage className="w-4 h-4 text-neon-blue" />
+                Productos del Movimiento ({detalles.length})
+              </h3>
+              
+              {/* Buscador + Selector + Cantidad */}
+              <div className="space-y-2 mb-3">
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar producto por nombre o código..."
+                    value={currentItem.search}
+                    onChange={(e) => setCurrentItem({ ...currentItem, search: e.target.value })}
+                    className="input-glass w-full pl-10 text-sm"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-12 gap-2">
+                  <select
+                    value={currentItem.item_id}
+                    onChange={(e) => setCurrentItem({ ...currentItem, item_id: e.target.value })}
+                    className="input-glass col-span-7 text-sm"
+                  >
+                    <option value="">Seleccionar producto...</option>
+                    {filteredItems.map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.codigo} - {item.nombre} (Stock: {item.stock})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={currentItem.cantidad}
+                    onChange={(e) => setCurrentItem({ ...currentItem, cantidad: e.target.value })}
+                    className="input-glass col-span-3 text-sm"
+                    placeholder="Cant."
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddDetalle}
+                    className="col-span-2 btn-neon text-white rounded-xl flex items-center justify-center"
+                  >
+                    <FiPlus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
 
+              {/* Lista de productos agregados */}
+              {detalles.length > 0 && (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {detalles.map((d) => (
+                    <div key={d.item_id} className="glass rounded-xl p-3 flex justify-between items-center">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white font-medium truncate">{d.item_nombre}</p>
+                        <p className="text-xs text-gray-400">{d.item_codigo} · Stock actual: {d.stock_actual}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-sm font-bold ${
+                          formData.tipo === 'entrada' ? 'text-neon-green' : 'text-neon-pink'
+                        }`}>
+                          {formData.tipo === 'entrada' ? '+' : '-'}{d.cantidad} {d.unidad_medida}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDetalle(d.item_id)}
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/20"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {detalles.length === 0 && (
+                <p className="text-center text-gray-500 text-sm py-4">
+                  No hay productos agregados. Usa el selector de arriba.
+                </p>
+              )}
+            </div>
+
+            {/* Botón Submit */}
             <button
               type="submit"
-              className="w-full btn-neon text-white font-medium"
+              disabled={submitting || detalles.length === 0}
+              className={`w-full py-3 rounded-xl font-medium text-white flex items-center justify-center gap-2 ${
+                submitting || detalles.length === 0
+                  ? 'bg-gray-700 cursor-not-allowed opacity-50'
+                  : formData.tipo === 'entrada'
+                    ? 'bg-gradient-to-r from-neon-green/80 to-neon-blue/80 hover:from-neon-green hover:to-neon-blue'
+                    : 'bg-gradient-to-r from-neon-pink/80 to-neon-blue/80 hover:from-neon-pink hover:to-neon-blue'
+              } transition-all`}
             >
-              Registrar Movimiento
+              {submitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  <FiClock className="w-4 h-4" />
+                  Registrar Movimiento ({detalles.length} productos)
+                </>
+              )}
             </button>
           </form>
         </div>
 
-        {/* Resumen y productos con bajo stock */}
-        <div className="space-y-6">
-          <div className="glass rounded-2xl p-6 border border-white/5">
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <FiPackage className="w-5 h-5 text-neon-pink" />
-              Productos con Stock Bajo
+        {/* ============================================ */}
+        {/* HISTORIAL DE MOVIMIENTOS */}
+        {/* ============================================ */}
+        <div className="glass rounded-2xl p-6 border border-white/5">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+              <FiClock className="w-5 h-5 text-neon-green" />
+              Historial ({totalItems})
             </h2>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {safeItems
-                .filter(item => item.stock < (item.stock_minimo || 5))
-                .slice(0, 10)
-                .map(item => {
-                  const warehouse = safeWarehouses.find(w => w.id === item.almacen_id);
-                  return (
-                    <div key={item.id} className="glass-neon-pink rounded-xl p-3 flex justify-between items-center">
-                      <div>
-                        <p className="text-sm font-medium text-white">{item.nombre}</p>
-                        <p className="text-xs text-gray-400">{warehouse?.nombre || 'Sin almacén'}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-neon-pink font-bold text-sm">Stock: {item.stock}</p>
-                        <p className="text-xs text-gray-400">Mín: {item.stock_minimo || 5}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              {safeItems.filter(item => item.stock < (item.stock_minimo || 5)).length === 0 && (
-                <p className="text-green-400 text-sm text-center py-4">
-                  ✅ Todos los productos tienen stock suficiente
-                </p>
-              )}
+            <button
+              onClick={fetchMovimientos}
+              className="p-2 rounded-lg glass text-gray-400 hover:text-white"
+            >
+              <FiRefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Filtros */}
+          <div className="space-y-2 mb-4">
+            <div className="grid grid-cols-3 gap-2">
+              <select
+                value={filtros.tipo}
+                onChange={(e) => { setFiltros({ ...filtros, tipo: e.target.value }); setCurrentPage(1); }}
+                className="input-glass text-xs"
+              >
+                <option value="">Todos</option>
+                <option value="entrada">Entradas</option>
+                <option value="salida">Salidas</option>
+              </select>
+              <input
+                type="date"
+                value={filtros.fecha_desde}
+                onChange={(e) => { setFiltros({ ...filtros, fecha_desde: e.target.value }); setCurrentPage(1); }}
+                className="input-glass text-xs"
+                placeholder="Desde"
+              />
+              <input
+                type="date"
+                value={filtros.fecha_hasta}
+                onChange={(e) => { setFiltros({ ...filtros, fecha_hasta: e.target.value }); setCurrentPage(1); }}
+                className="input-glass text-xs"
+                placeholder="Hasta"
+              />
+            </div>
+            <div className="relative">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Buscar por documento, proveedor, destino..."
+                value={filtros.search}
+                onChange={(e) => { setFiltros({ ...filtros, search: e.target.value }); setCurrentPage(1); }}
+                className="input-glass w-full pl-10 text-sm"
+              />
             </div>
           </div>
 
-          {/* Últimos movimientos */}
-          {safeMovimientos.length > 0 && (
-            <div className="glass rounded-2xl p-6 border border-white/5">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <FiClock className="w-5 h-5 text-neon-green" />
-                Últimos Movimientos
-              </h2>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {safeMovimientos.slice(0, 5).map((mov) => (
-                  <div key={mov.id} className="glass rounded-xl p-3 flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-medium text-white">{mov.item}</p>
-                      <p className="text-xs text-gray-400">{mov.fecha}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`text-sm font-bold ${mov.tipo === 'entrada' ? 'text-neon-green' : 'text-neon-pink'}`}>
-                        {mov.tipo === 'entrada' ? '+' : '-'}{mov.cantidad}
+          {/* Lista de movimientos */}
+          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            {movimientos.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-8">
+                No hay movimientos registrados
+              </p>
+            ) : (
+              movimientos.map((mov) => (
+                <div
+                  key={mov.id}
+                  onClick={() => { setSelectedMovimiento(mov); setShowDetailModal(true); }}
+                  className="glass rounded-xl p-3 hover:bg-white/5 cursor-pointer transition-all"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        mov.tipo === 'entrada'
+                          ? 'bg-neon-green/20 text-neon-green'
+                          : 'bg-neon-pink/20 text-neon-pink'
+                      }`}>
+                        {mov.tipo === 'entrada' ? '+ Entrada' : '- Salida'}
                       </span>
-                      {mov.observacion && (
-                        <p className="text-xs text-gray-400">{mov.observacion}</p>
-                      )}
+                      <span className="text-xs text-gray-400">{mov.fecha}</span>
                     </div>
+                    <span className="text-xs text-gray-500">#{mov.id}</span>
                   </div>
+                  
+                  <div className="text-xs text-gray-400 space-y-1">
+                    {mov.numero_documento && (
+                      <p className="flex items-center gap-1">
+                        <FiFileText className="w-3 h-3" /> {mov.numero_documento}
+                      </p>
+                    )}
+                    {mov.proveedor && (
+                      <p className="flex items-center gap-1">
+                        <FiTruck className="w-3 h-3" /> {mov.proveedor}
+                      </p>
+                    )}
+                    {mov.destino && (
+                      <p className="flex items-center gap-1">
+                        <FiTruck className="w-3 h-3" /> {mov.destino}
+                      </p>
+                    )}
+                    <p className="flex items-center gap-1 text-neon-blue">
+                      <FiPackage className="w-3 h-3" /> {mov.detalles?.length || 0} producto(s)
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
+              <span className="text-xs text-gray-400">
+                Página {currentPage} de {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
+                >
+                  <FiChevronLeft className="w-4 h-4" />
+                </button>
+                {getPageNumbers().map(page => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`px-2.5 py-1 rounded-lg text-xs ${
+                      page === currentPage
+                        ? 'bg-neon-blue text-white font-semibold'
+                        : 'glass text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {page}
+                  </button>
                 ))}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
+                >
+                  <FiChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* ============================================ */}
+      {/* MODAL DE DETALLE */}
+      {/* ============================================ */}
+      {showDetailModal && selectedMovimiento && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass rounded-2xl w-full max-w-2xl p-6 border border-white/10 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <FiEye className="w-5 h-5 text-neon-blue" />
+                Movimiento #{selectedMovimiento.id}
+              </h2>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="p-2 rounded-lg text-gray-400 hover:text-white"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-400">Tipo</p>
+                <p className={`font-medium ${selectedMovimiento.tipo === 'entrada' ? 'text-neon-green' : 'text-neon-pink'}`}>
+                  {selectedMovimiento.tipo === 'entrada' ? '+ Entrada' : '- Salida'}
+                </p>
+              </div>
+              <div className="glass rounded-lg p-3">
+                <p className="text-xs text-gray-400">Fecha</p>
+                <p className="text-white font-medium">{selectedMovimiento.fecha}</p>
+              </div>
+              {selectedMovimiento.numero_documento && (
+                <div className="glass rounded-lg p-3">
+                  <p className="text-xs text-gray-400">N° Documento</p>
+                  <p className="text-white font-medium">{selectedMovimiento.numero_documento}</p>
+                </div>
+              )}
+              {selectedMovimiento.proveedor && (
+                <div className="glass rounded-lg p-3">
+                  <p className="text-xs text-gray-400">Proveedor</p>
+                  <p className="text-white font-medium">{selectedMovimiento.proveedor}</p>
+                </div>
+              )}
+              {selectedMovimiento.destino && (
+                <div className="glass rounded-lg p-3">
+                  <p className="text-xs text-gray-400">Destino</p>
+                  <p className="text-white font-medium">{selectedMovimiento.destino}</p>
+                </div>
+              )}
+              {selectedMovimiento.usuario_email && (
+                <div className="glass rounded-lg p-3 col-span-2">
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <FiUser className="w-3 h-3" /> Registrado por
+                  </p>
+                  <p className="text-white font-medium text-sm">{selectedMovimiento.usuario_email}</p>
+                </div>
+              )}
+              {selectedMovimiento.observacion && (
+                <div className="glass rounded-lg p-3 col-span-2">
+                  <p className="text-xs text-gray-400">Observación</p>
+                  <p className="text-white text-sm">{selectedMovimiento.observacion}</p>
+                </div>
+              )}
+            </div>
+
+            <h3 className="text-md font-semibold text-white mb-2 flex items-center gap-2">
+              <FiPackage className="w-4 h-4 text-neon-blue" />
+              Productos ({selectedMovimiento.detalles?.length || 0})
+            </h3>
+            <div className="space-y-2">
+              {selectedMovimiento.detalles?.map((det) => (
+                <div key={det.id} className="glass rounded-lg p-3 flex justify-between items-center">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white font-medium truncate">{det.item_nombre || `Item #${det.item_id}`}</p>
+                    <p className="text-xs text-gray-400">{det.item_codigo}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold ${selectedMovimiento.tipo === 'entrada' ? 'text-neon-green' : 'text-neon-pink'}`}>
+                      {selectedMovimiento.tipo === 'entrada' ? '+' : '-'}{det.cantidad}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {det.stock_anterior} → {det.stock_nuevo}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
