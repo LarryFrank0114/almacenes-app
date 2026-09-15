@@ -25,6 +25,9 @@ export default function Productos() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showActionsModal, setShowActionsModal] = useState(false);
   
+  // ✅ NUEVO: Lista de proveedores únicos (cargada del backend)
+  const [proveedores, setProveedores] = useState([]);
+  
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
@@ -50,9 +53,10 @@ export default function Productos() {
     almacen_id: ''
   });
 
-  // Cargar almacenes al inicio
+  // Cargar almacenes y proveedores al inicio
   useEffect(() => {
     fetchWarehouses();
+    fetchProveedores();
   }, []);
 
   // Cargar items cuando cambian los filtros o la página
@@ -91,9 +95,31 @@ export default function Productos() {
   const fetchWarehouses = async () => {
     try {
       const res = await warehouseService.getAll();
-      setWarehouses(res.data || []);
+      const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setWarehouses(data);
     } catch (error) {
       console.error('Error al cargar almacenes:', error);
+    }
+  };
+
+  // ✅ NUEVO: Cargar proveedores únicos desde todos los items
+  const fetchProveedores = async () => {
+    try {
+      // Pedimos todos los items (sin paginación real) solo para extraer proveedores únicos
+      const res = await itemService.getAll({ limit: 10000 });
+      const allItems = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      
+      // Extraer valores únicos de la columna 'categoria' (que en realidad son proveedores)
+      const uniqueProveedores = [...new Set(
+        allItems
+          .map(i => i.categoria)
+          .filter(Boolean)
+          .map(c => c.trim())
+      )].sort();
+      
+      setProveedores(uniqueProveedores);
+    } catch (error) {
+      console.error('Error al cargar proveedores:', error);
     }
   };
 
@@ -162,6 +188,7 @@ export default function Productos() {
       toast.success(t('products.saveSuccess'));
       setShowEditModal(false);
       fetchItems();
+      fetchProveedores(); // ✅ Recargar proveedores por si se cambió alguno
     } catch (error) {
       toast.error(t('products.saveError'));
     }
@@ -179,6 +206,7 @@ export default function Productos() {
         toast.success(t('products.deleteSuccess'));
         setShowActionsModal(false);
         fetchItems();
+        fetchProveedores();
       } catch (error) {
         toast.error(t('products.deleteError'));
       }
@@ -276,17 +304,16 @@ export default function Productos() {
             ))}
           </select>
 
-          {/* Filtro Categoría */}
+          {/* ✅ Filtro Proveedor DINÁMICO */}
           <select
             value={selectedCategory}
             onChange={(e) => handleFilterChange(setSelectedCategory)(e.target.value)}
             className="input-glass px-3 py-2"
           >
-            <option value="">{t('products.allCategories')}</option>
-            <option value="DAFON FABRICACION S.A.C.">DAFON FABRICACION S.A.C.</option>
-            <option value="W & M MAQUINARIA S.A.C.">W & M MAQUINARIA S.A.C.</option>
-            <option value="CORPORACION ACEROS AREQUIPA S.A.">CORPORACION ACEROS AREQUIPA S.A.</option>
-            <option value="GRUPO HIDRAULICA S.A.C.">GRUPO HIDRAULICA S.A.C.</option>
+            <option value="">Todos los proveedores</option>
+            {proveedores.map(prov => (
+              <option key={prov} value={prov}>{prov}</option>
+            ))}
           </select>
 
           {/* Limpiar */}
@@ -308,7 +335,7 @@ export default function Productos() {
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.code')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.name')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden lg:table-cell">{t('products.description')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden md:table-cell">{t('products.category')}</th>
+              <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden md:table-cell">Proveedor</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.stock')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden sm:table-cell">{t('products.price')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.warehouse')}</th>
@@ -498,7 +525,7 @@ export default function Productos() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('products.category')}</label>
+                <label className="block text-sm text-gray-400 mb-1">Proveedor</label>
                 <input
                   type="text"
                   value={formData.categoria}
