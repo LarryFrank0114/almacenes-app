@@ -32,7 +32,6 @@ export default function Reportes() {
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState('all');
-  const [reportType, setReportType] = useState('stock');
 
   useEffect(() => {
     fetchData();
@@ -44,8 +43,18 @@ export default function Reportes() {
         itemService.getAll({ limit: 5000 }),
         warehouseService.getAll()
       ]);
-      setItems(itemsRes.data || []);
-      setWarehouses(warehousesRes.data || []);
+      
+      // ✅ CORRECCIÓN: Extraer el array del objeto paginado
+      const itemsData = Array.isArray(itemsRes.data) 
+        ? itemsRes.data 
+        : (itemsRes.data?.data || []);
+      
+      const warehousesData = Array.isArray(warehousesRes.data) 
+        ? warehousesRes.data 
+        : (warehousesRes.data?.data || []);
+      
+      setItems(itemsData);
+      setWarehouses(warehousesData);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error al cargar datos');
@@ -54,10 +63,14 @@ export default function Reportes() {
     }
   };
 
+  // ✅ Validación de seguridad: asegurar que trabajamos con arrays
+  const safeItems = Array.isArray(items) ? items : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+
   // Filtrar items por almacén seleccionado
   const getFilteredItems = () => {
-    if (selectedWarehouse === 'all') return items;
-    return items.filter(item => item.almacen_id === parseInt(selectedWarehouse));
+    if (selectedWarehouse === 'all') return safeItems;
+    return safeItems.filter(item => item.almacen_id === parseInt(selectedWarehouse));
   };
 
   const filteredItems = getFilteredItems();
@@ -67,7 +80,7 @@ export default function Reportes() {
     try {
       const warehouseName = selectedWarehouse === 'all' 
         ? 'Todos los almacenes' 
-        : warehouses.find(w => w.id === parseInt(selectedWarehouse))?.nombre || 'Seleccionado';
+        : safeWarehouses.find(w => w.id === parseInt(selectedWarehouse))?.nombre || 'Seleccionado';
 
       const exportData = filteredItems.map(item => ({
         'Código': item.codigo,
@@ -76,7 +89,7 @@ export default function Reportes() {
         'Stock': item.stock,
         'Stock Mínimo': item.stock_minimo || 5,
         'Precio': item.precio,
-        'Almacén': warehouses.find(w => w.id === item.almacen_id)?.nombre || 'N/A'
+        'Almacén': safeWarehouses.find(w => w.id === item.almacen_id)?.nombre || 'N/A'
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
@@ -101,7 +114,7 @@ export default function Reportes() {
   }
 
   // Datos para gráficos
-  const stockByWarehouse = warehouses.map(w => ({
+  const stockByWarehouse = safeWarehouses.map(w => ({
     label: w.nombre,
     value: filteredItems.filter(i => i.almacen_id === w.id).reduce((sum, i) => sum + i.stock, 0)
   }));
@@ -191,7 +204,7 @@ export default function Reportes() {
             }}
           >
             <option value="all" className="bg-crystal-dark text-white">Todos los almacenes</option>
-            {warehouses.map(w => (
+            {safeWarehouses.map(w => (
               <option key={w.id} value={w.id} className="bg-crystal-dark text-white">
                 {w.nombre}
               </option>
@@ -233,19 +246,19 @@ export default function Reportes() {
           <div className="glass rounded-xl p-4">
             <p className="text-sm text-gray-400">Stock Total</p>
             <p className="text-2xl font-bold text-neon-green">
-              {filteredItems.reduce((sum, i) => sum + i.stock, 0)}
+              {filteredItems.reduce((sum, i) => sum + (i.stock || 0), 0)}
             </p>
           </div>
           <div className="glass rounded-xl p-4">
             <p className="text-sm text-gray-400">Valor Total</p>
             <p className="text-2xl font-bold text-neon-pink">
-              S/. {filteredItems.reduce((sum, i) => sum + (i.stock * i.precio), 0).toFixed(2)}
+              S/. {filteredItems.reduce((sum, i) => sum + ((i.stock || 0) * (i.precio || 0)), 0).toFixed(2)}
             </p>
           </div>
           <div className="glass rounded-xl p-4">
             <p className="text-sm text-gray-400">Almacenes</p>
             <p className="text-2xl font-bold text-neon-cyan">
-              {selectedWarehouse === 'all' ? warehouses.length : 1}
+              {selectedWarehouse === 'all' ? safeWarehouses.length : 1}
             </p>
           </div>
         </div>
