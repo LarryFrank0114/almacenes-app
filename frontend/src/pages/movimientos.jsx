@@ -25,13 +25,25 @@ export default function Movimientos() {
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const [itemsRes, warehousesRes] = await Promise.all([
-        itemService.getAll({ limit: 1000 }),
+        itemService.getAll({ limit: 5000 }), // ✅ Aumentado para traer todos
         warehouseService.getAll()
       ]);
-      setItems(itemsRes.data || []);
-      setWarehouses(warehousesRes.data || []);
+      
+      // ✅ CORRECCIÓN: Extraer el array del objeto paginado
+      const itemsData = Array.isArray(itemsRes.data) 
+        ? itemsRes.data 
+        : (itemsRes.data?.data || []);
+      
+      const warehousesData = Array.isArray(warehousesRes.data) 
+        ? warehousesRes.data 
+        : (warehousesRes.data?.data || []);
+      
+      setItems(itemsData);
+      setWarehouses(warehousesData);
     } catch (error) {
+      console.error('Error al cargar datos:', error);
       toast.error('Error al cargar datos');
     } finally {
       setLoading(false);
@@ -75,9 +87,15 @@ export default function Movimientos() {
       });
       fetchData();
     } catch (error) {
+      console.error('Error al registrar movimiento:', error);
       toast.error('❌ Error al registrar movimiento');
     }
   };
+
+  // ✅ Validación: no renderizar tablas si items no es un array
+  const safeItems = Array.isArray(items) ? items : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+  const safeMovimientos = Array.isArray(movimientos) ? movimientos : [];
 
   if (loading) {
     return (
@@ -117,7 +135,7 @@ export default function Movimientos() {
               required
             >
               <option value="">Seleccionar producto</option>
-              {items.map(item => (
+              {safeItems.map(item => (
                 <option key={item.id} value={item.id}>
                   {item.codigo} - {item.nombre} (Stock: {item.stock})
                 </option>
@@ -138,7 +156,7 @@ export default function Movimientos() {
                 type="number"
                 placeholder="Cantidad"
                 value={formData.cantidad}
-                onChange={(e) => setFormData({...formData, cantidad: parseInt(e.target.value)})}
+                onChange={(e) => setFormData({...formData, cantidad: parseInt(e.target.value) || 1})}
                 className="input-glass"
                 required
                 min="1"
@@ -170,11 +188,11 @@ export default function Movimientos() {
               Productos con Stock Bajo
             </h2>
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {items
+              {safeItems
                 .filter(item => item.stock < (item.stock_minimo || 5))
                 .slice(0, 10)
                 .map(item => {
-                  const warehouse = warehouses.find(w => w.id === item.almacen_id);
+                  const warehouse = safeWarehouses.find(w => w.id === item.almacen_id);
                   return (
                     <div key={item.id} className="glass-neon-pink rounded-xl p-3 flex justify-between items-center">
                       <div>
@@ -188,7 +206,7 @@ export default function Movimientos() {
                     </div>
                   );
                 })}
-              {items.filter(item => item.stock < (item.stock_minimo || 5)).length === 0 && (
+              {safeItems.filter(item => item.stock < (item.stock_minimo || 5)).length === 0 && (
                 <p className="text-green-400 text-sm text-center py-4">
                   ✅ Todos los productos tienen stock suficiente
                 </p>
@@ -197,14 +215,14 @@ export default function Movimientos() {
           </div>
 
           {/* Últimos movimientos */}
-          {movimientos.length > 0 && (
+          {safeMovimientos.length > 0 && (
             <div className="glass rounded-2xl p-6 border border-white/5">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <FiClock className="w-5 h-5 text-neon-green" />
                 Últimos Movimientos
               </h2>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {movimientos.slice(0, 5).map((mov) => (
+                {safeMovimientos.slice(0, 5).map((mov) => (
                   <div key={mov.id} className="glass rounded-xl p-3 flex justify-between items-center">
                     <div>
                       <p className="text-sm font-medium text-white">{mov.item}</p>
