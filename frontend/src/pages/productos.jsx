@@ -25,8 +25,8 @@ export default function Productos() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showActionsModal, setShowActionsModal] = useState(false);
   
-  // ✅ NUEVO: Lista de proveedores únicos (cargada del backend)
-  const [proveedores, setProveedores] = useState([]);
+  // ✅ Lista de categorías únicas (cargada del backend)
+  const [categorias, setCategorias] = useState([]);
   
   // Filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,10 +53,10 @@ export default function Productos() {
     almacen_id: ''
   });
 
-  // Cargar almacenes y proveedores al inicio
+  // Cargar almacenes y categorías al inicio
   useEffect(() => {
     fetchWarehouses();
-    fetchProveedores();
+    fetchCategorias();
   }, []);
 
   // Cargar items cuando cambian los filtros o la página
@@ -102,24 +102,24 @@ export default function Productos() {
     }
   };
 
-  // ✅ NUEVO: Cargar proveedores únicos desde todos los items
-  const fetchProveedores = async () => {
+  // ✅ Cargar categorías únicas desde todos los items
+  const fetchCategorias = async () => {
     try {
-      // Pedimos todos los items (sin paginación real) solo para extraer proveedores únicos
+      // Pedimos todos los items (sin paginación real) solo para extraer categorías únicas
       const res = await itemService.getAll({ limit: 10000 });
       const allItems = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       
-      // Extraer valores únicos de la columna 'categoria' (que en realidad son proveedores)
-      const uniqueProveedores = [...new Set(
+      // Extraer valores únicos de la columna 'categoria'
+      const uniqueCategorias = [...new Set(
         allItems
           .map(i => i.categoria)
           .filter(Boolean)
           .map(c => c.trim())
       )].sort();
       
-      setProveedores(uniqueProveedores);
+      setCategorias(uniqueCategorias);
     } catch (error) {
-      console.error('Error al cargar proveedores:', error);
+      console.error('Error al cargar categorías:', error);
     }
   };
 
@@ -188,7 +188,7 @@ export default function Productos() {
       toast.success(t('products.saveSuccess'));
       setShowEditModal(false);
       fetchItems();
-      fetchProveedores(); // ✅ Recargar proveedores por si se cambió alguno
+      fetchCategorias(); // ✅ Recargar categorías por si se cambió alguna
     } catch (error) {
       toast.error(t('products.saveError'));
     }
@@ -206,7 +206,7 @@ export default function Productos() {
         toast.success(t('products.deleteSuccess'));
         setShowActionsModal(false);
         fetchItems();
-        fetchProveedores();
+        fetchCategorias();
       } catch (error) {
         toast.error(t('products.deleteError'));
       }
@@ -304,15 +304,15 @@ export default function Productos() {
             ))}
           </select>
 
-          {/* ✅ Filtro Proveedor DINÁMICO */}
+          {/* ✅ Filtro Categoría DINÁMICO */}
           <select
             value={selectedCategory}
             onChange={(e) => handleFilterChange(setSelectedCategory)(e.target.value)}
             className="input-glass px-3 py-2"
           >
-            <option value="">Todos los proveedores</option>
-            {proveedores.map(prov => (
-              <option key={prov} value={prov}>{prov}</option>
+            <option value="">Todas las categorías</option>
+            {categorias.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
 
@@ -335,7 +335,7 @@ export default function Productos() {
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.code')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.name')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden lg:table-cell">{t('products.description')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden md:table-cell">Proveedor</th>
+              <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden md:table-cell">{t('products.category')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.stock')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden sm:table-cell">{t('products.price')}</th>
               <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.warehouse')}</th>
@@ -525,7 +525,7 @@ export default function Productos() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Proveedor</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('products.category')}</label>
                 <input
                   type="text"
                   value={formData.categoria}
