@@ -16,13 +16,13 @@ const PAGE_SIZE = 20;
 export default function Movimientos() {
   const { t } = useTranslation();
   const { isAdmin, user } = useAuth();
-  
+
   // Estado del formulario
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Formulario principal
   const [formData, setFormData] = useState({
     tipo: 'entrada',
@@ -32,17 +32,17 @@ export default function Movimientos() {
     destino: '',
     observacion: '',
   });
-  
+
   // Lista de detalles (productos del movimiento)
   const [detalles, setDetalles] = useState([]);
-  
+
   // Producto actual que se está agregando
   const [currentItem, setCurrentItem] = useState({
     item_id: '',
     cantidad: 1,
     search: '',
   });
-  
+
   // Filtros para el historial
   const [filtros, setFiltros] = useState({
     tipo: '',
@@ -50,13 +50,13 @@ export default function Movimientos() {
     fecha_hasta: '',
     search: '',
   });
-  
+
   // Historial paginado
   const [movimientos, setMovimientos] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   // Modal de detalle
   const [selectedMovimiento, setSelectedMovimiento] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -77,15 +77,15 @@ export default function Movimientos() {
         itemService.getAll({ limit: 5000 }),
         warehouseService.getAll()
       ]);
-      
+
       const itemsData = Array.isArray(itemsRes.data)
         ? itemsRes.data
         : (itemsRes.data?.data || []);
-      
+
       const warehousesData = Array.isArray(warehousesRes.data)
         ? warehousesRes.data
         : (warehousesRes.data?.data || []);
-      
+
       setItems(itemsData);
       setWarehouses(warehousesData);
     } catch (error) {
@@ -106,7 +106,7 @@ export default function Movimientos() {
       if (filtros.fecha_desde) params.fecha_desde = filtros.fecha_desde;
       if (filtros.fecha_hasta) params.fecha_hasta = filtros.fecha_hasta;
       if (filtros.search) params.search = filtros.search;
-      
+
       const res = await movimientoService.getAll(params);
       setMovimientos(res.data.data || []);
       setTotalItems(res.data.total || 0);
@@ -128,22 +128,22 @@ export default function Movimientos() {
       toast.error('Cantidad debe ser mayor a 0');
       return;
     }
-    
+
     // Verificar que no esté ya agregado
     if (detalles.some(d => d.item_id === parseInt(currentItem.item_id))) {
       toast.error('Este producto ya está agregado');
       return;
     }
-    
+
     const item = items.find(i => i.id === parseInt(currentItem.item_id));
     if (!item) return;
-    
+
     // Validar stock si es salida
     if (formData.tipo === 'salida' && item.stock < currentItem.cantidad) {
       toast.error(`Stock insuficiente. Disponible: ${item.stock}`);
       return;
     }
-    
+
     setDetalles([
       ...detalles,
       {
@@ -155,7 +155,7 @@ export default function Movimientos() {
         unidad_medida: item.unidad_medida || 'und'
       }
     ]);
-    
+
     setCurrentItem({ item_id: '', cantidad: 1, search: '' });
   };
 
@@ -168,7 +168,7 @@ export default function Movimientos() {
   // ============================================
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isAdmin()) {
       toast.error('❌ Solo administradores pueden registrar movimientos');
       return;
@@ -177,16 +177,16 @@ export default function Movimientos() {
       toast.error('Agrega al menos un producto');
       return;
     }
-    
+
     // Validar campos según tipo
     if (formData.tipo === 'salida' && !formData.destino) {
       toast.error('El destino es obligatorio para salidas');
       return;
     }
-    
+
     try {
       setSubmitting(true);
-      
+
       const payload = {
         tipo: formData.tipo,
         fecha: formData.fecha,
@@ -200,10 +200,10 @@ export default function Movimientos() {
           cantidad: d.cantidad,
         })),
       };
-      
+
       await movimientoService.create(payload);
       toast.success(`✅ Movimiento de ${formData.tipo} registrado (${detalles.length} productos)`);
-      
+
       // Limpiar formulario
       setFormData({
         tipo: 'entrada',
@@ -215,7 +215,7 @@ export default function Movimientos() {
       });
       setDetalles([]);
       setCurrentItem({ item_id: '', cantidad: 1, search: '' });
-      
+
       // Recargar datos
       fetchInitialData();
       fetchMovimientos();
@@ -246,11 +246,17 @@ export default function Movimientos() {
     return pages;
   };
 
+  // Filtro dinámico del buscador
   const filteredItems = items.filter(i => {
-    if (!currentItem.search) return true;
+    if (!currentItem.search) return false; // No mostrar nada si no hay búsqueda
     const s = currentItem.search.toLowerCase();
     return i.nombre?.toLowerCase().includes(s) || i.codigo?.toLowerCase().includes(s);
   }).slice(0, 50);
+
+  // Producto actualmente seleccionado (para mostrar en la tarjeta)
+  const selectedItemData = currentItem.item_id
+    ? items.find(i => i.id === parseInt(currentItem.item_id))
+    : null;
 
   if (loading) {
     return (
@@ -280,7 +286,7 @@ export default function Movimientos() {
             <FiClock className="w-5 h-5 text-neon-blue" />
             Registrar Movimiento
           </h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Tipo */}
             <div className="grid grid-cols-2 gap-3">
@@ -389,50 +395,105 @@ export default function Movimientos() {
                 <FiPackage className="w-4 h-4 text-neon-blue" />
                 Productos del Movimiento ({detalles.length})
               </h3>
-              
-              {/* Buscador + Selector + Cantidad */}
-              <div className="space-y-2 mb-3">
-                <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input
-                    type="text"
-                    placeholder="Buscar producto por nombre o código..."
-                    value={currentItem.search}
-                    onChange={(e) => setCurrentItem({ ...currentItem, search: e.target.value })}
-                    className="input-glass w-full pl-10 text-sm"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-12 gap-2">
-                  <select
-                    value={currentItem.item_id}
-                    onChange={(e) => setCurrentItem({ ...currentItem, item_id: e.target.value })}
-                    className="input-glass col-span-7 text-sm"
-                  >
-                    <option value="">Seleccionar producto...</option>
-                    {filteredItems.map(item => (
-                      <option key={item.id} value={item.id}>
-                        {item.codigo} - {item.nombre} (Stock: {item.stock})
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={currentItem.cantidad}
-                    onChange={(e) => setCurrentItem({ ...currentItem, cantidad: e.target.value })}
-                    className="input-glass col-span-3 text-sm"
-                    placeholder="Cant."
-                  />
+
+              {/* Buscador */}
+              <div className="relative mb-3">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar producto por nombre o código..."
+                  value={currentItem.search}
+                  onChange={(e) => {
+                    setCurrentItem({ ...currentItem, search: e.target.value, item_id: '' });
+                  }}
+                  className="input-glass w-full pl-10 pr-10 text-sm"
+                />
+                {currentItem.search && (
                   <button
                     type="button"
-                    onClick={handleAddDetalle}
-                    className="col-span-2 btn-neon text-white rounded-xl flex items-center justify-center"
+                    onClick={() => setCurrentItem({ ...currentItem, search: '', item_id: '' })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
                   >
-                    <FiPlus className="w-4 h-4" />
+                    <FiX className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown personalizado con resultados */}
+              {currentItem.search && !currentItem.item_id && (
+                <div className="glass rounded-xl border border-white/10 max-h-56 overflow-y-auto mb-3">
+                  {filteredItems.length === 0 ? (
+                    <p className="text-center text-gray-500 text-sm py-4">
+                      No se encontraron productos
+                    </p>
+                  ) : (
+                    filteredItems.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setCurrentItem({ ...currentItem, item_id: item.id.toString(), search: '' });
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-white/10 transition-colors border-b border-white/5 last:border-b-0"
+                      >
+                        <p className="text-sm text-white font-medium truncate">{item.nombre}</p>
+                        <p className="text-xs text-gray-400">
+                          {item.codigo} · Stock:{' '}
+                          <span className={item.stock <= (item.stock_minimo || 5) ? 'text-neon-pink' : 'text-neon-green'}>
+                            {item.stock}
+                          </span>{' '}
+                          {item.unidad_medida || 'und'}
+                        </p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Producto seleccionado */}
+              {selectedItemData && (
+                <div className="glass rounded-xl p-3 flex items-center gap-2 mb-3 border border-neon-blue/30">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white font-medium truncate">{selectedItemData.nombre}</p>
+                    <p className="text-xs text-gray-400">
+                      {selectedItemData.codigo} · Stock: {selectedItemData.stock} {selectedItemData.unidad_medida || 'und'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentItem({ ...currentItem, item_id: '', search: '' })}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+                  >
+                    <FiX className="w-4 h-4" />
                   </button>
                 </div>
+              )}
+
+              {/* Cantidad + Botón Agregar */}
+              <div className="grid grid-cols-12 gap-2 mb-3">
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={currentItem.cantidad}
+                  onChange={(e) => setCurrentItem({ ...currentItem, cantidad: e.target.value })}
+                  className="input-glass col-span-8 text-sm"
+                  placeholder="Cantidad"
+                  disabled={!currentItem.item_id}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddDetalle}
+                  disabled={!currentItem.item_id}
+                  className={`col-span-4 rounded-xl flex items-center justify-center gap-1 font-medium transition-all text-sm ${
+                    currentItem.item_id
+                      ? 'btn-neon text-white'
+                      : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Agregar
+                </button>
               </div>
 
               {/* Lista de productos agregados */}
@@ -465,7 +526,7 @@ export default function Movimientos() {
 
               {detalles.length === 0 && (
                 <p className="text-center text-gray-500 text-sm py-4">
-                  No hay productos agregados. Usa el selector de arriba.
+                  No hay productos agregados. Usa el buscador de arriba.
                 </p>
               )}
             </div>
@@ -579,7 +640,7 @@ export default function Movimientos() {
                     </div>
                     <span className="text-xs text-gray-500">#{mov.id}</span>
                   </div>
-                  
+
                   <div className="text-xs text-gray-400 space-y-1">
                     {mov.numero_documento && (
                       <p className="flex items-center gap-1">
