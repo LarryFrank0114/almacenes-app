@@ -40,20 +40,31 @@ export default function Dashboard() {
   const fetchStats = async () => {
     try {
       setLoading(true);
+      
+      // ✅ CORRECCIÓN: Extraer correctamente el array de la respuesta paginada
       const itemsRes = await itemService.getAll();
-      const items = itemsRes.data || [];
+      // El backend ahora devuelve { data: [...], total: ... } o un array directo
+      const items = Array.isArray(itemsRes.data) 
+        ? itemsRes.data 
+        : (itemsRes.data?.data || []);
       
       const almacenesRes = await warehouseService.getAll();
-      const almacenes = almacenesRes.data || [];
+      const almacenes = Array.isArray(almacenesRes.data) 
+        ? almacenesRes.data 
+        : (almacenesRes.data?.data || []);
       
-      const stockTotal = items.reduce((acc, item) => acc + (item.stock || 0), 0);
-      const stockBajo = items.filter(item => item.stock <= (item.stock_minimo || 0)).length;
-      const valorInventario = items.reduce((acc, item) => acc + (item.stock || 0) * (item.precio || 0), 0);
+      // ✅ Verificar que items sea un array antes de usar .reduce
+      const safeItems = Array.isArray(items) ? items : [];
+      const safeAlmacenes = Array.isArray(almacenes) ? almacenes : [];
+      
+      const stockTotal = safeItems.reduce((acc, item) => acc + (item.stock || 0), 0);
+      const stockBajo = safeItems.filter(item => item.stock <= (item.stock_minimo || 0)).length;
+      const valorInventario = safeItems.reduce((acc, item) => acc + (item.stock || 0) * (item.precio || 0), 0);
       
       setStats({
-        totalProductos: items.length,
+        totalProductos: safeItems.length,
         stockTotal,
-        totalAlmacenes: almacenes.length,
+        totalAlmacenes: safeAlmacenes.length,
         stockBajo,
         valorInventario
       });
