@@ -21,9 +21,7 @@ export const warehouseService = {
 
 // ✅ Servicios para Items CON PAGINACIÓN
 export const itemService = {
-  // ✅ Método paginado (el que usa productos.jsx)
   getPaginated: (params) => api.get('/items/', { params }),
-  // Compatibilidad con el método anterior
   getAll: (params) => api.get('/items/', { params }),
   getById: (id) => api.get(`/items/${id}/`),
   create: (data) => api.post('/items/', data),
@@ -31,6 +29,14 @@ export const itemService = {
   delete: (id) => api.delete(`/items/${id}/`),
   updateStock: (id, cantidad) => api.patch(`/items/${id}/stock`, null, { params: { cantidad } }),
   getStats: () => api.get('/items/stats/count'),
+};
+
+// ✅ NUEVO: Servicios para Movimientos
+export const movimientoService = {
+  getAll: (params) => api.get('/movimientos/', { params }),
+  getById: (id) => api.get(`/movimientos/${id}/`),
+  create: (data) => api.post('/movimientos/', data),
+  delete: (id) => api.delete(`/movimientos/${id}/`),
 };
 
 // Servicios para Configuración
