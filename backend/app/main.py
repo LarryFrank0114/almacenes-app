@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.database import engine, Base
-from .routers import almacenes, items, configuracion, usuarios, notificaciones
+from .routers import almacenes, items, configuracion, usuarios, notificaciones, movimientos
 
 app = FastAPI(
     title="Sistema de Gestión de Almacenes",
@@ -31,7 +31,8 @@ app.include_router(almacenes.router)
 app.include_router(items.router)
 app.include_router(configuracion.router)
 app.include_router(usuarios.router)
-app.include_router(notificaciones.router)  # ✅ Nuevo
+app.include_router(notificaciones.router)
+app.include_router(movimientos.router)  # ✅ NUEVO
 
 @app.on_event("startup")
 def on_startup():
@@ -45,7 +46,8 @@ def root():
         "endpoints": {
             "almacenes": "/almacenes/",
             "items": "/items/",
-            "notificaciones": "/notificaciones/"
+            "notificaciones": "/notificaciones/",
+            "movimientos": "/movimientos/"
         }
     }
 
