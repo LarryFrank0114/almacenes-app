@@ -10,6 +10,24 @@ const api = axios.create({
   },
 });
 
+// ✅ Interceptor para forzar HTTPS en TODAS las peticiones
+api.interceptors.request.use(
+  (config) => {
+    // Corregir baseURL si es HTTP
+    if (config.baseURL && config.baseURL.startsWith('http://')) {
+      config.baseURL = config.baseURL.replace('http://', 'https://');
+    }
+    // Corregir url si es HTTP (para peticiones absolutas)
+    if (config.url && config.url.startsWith('http://')) {
+      config.url = config.url.replace('http://', 'https://');
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Servicios para Almacenes
 export const warehouseService = {
   getAll: () => api.get('/almacenes/'),
