@@ -273,7 +273,7 @@ export default function Productos() {
       <div className="glass rounded-2xl p-4 mb-6 border border-white/5">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Búsqueda */}
-          <div className="flex-1 relative">
+          <div className="flex-1 min-w-[200px] relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="text"
@@ -296,7 +296,7 @@ export default function Productos() {
           <select
             value={selectedWarehouse}
             onChange={(e) => handleFilterChange(setSelectedWarehouse)(e.target.value)}
-            className="input-glass px-3 py-2"
+            className="input-glass px-3 py-2 min-w-[180px]"
           >
             <option value="">{t('products.allWarehouses')}</option>
             {warehouses.map(w => (
@@ -308,7 +308,7 @@ export default function Productos() {
           <select
             value={selectedCategory}
             onChange={(e) => handleFilterChange(setSelectedCategory)(e.target.value)}
-            className="input-glass px-3 py-2"
+            className="input-glass px-3 py-2 min-w-[180px]"
           >
             <option value="">Todas las categorías</option>
             {categorias.map(cat => (
