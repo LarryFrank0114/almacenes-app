@@ -9,14 +9,44 @@ const api = axios.create({
   },
 });
 
+// ✅ Interceptor para forzar HTTPS y enviar email del usuario
 api.interceptors.request.use(
   (config) => {
+    // Forzar HTTPS
     if (config.baseURL && config.baseURL.startsWith('http://')) {
       config.baseURL = config.baseURL.replace('http://', 'https://');
     }
     if (config.url && config.url.startsWith('http://')) {
       config.url = config.url.replace('http://', 'https://');
     }
+    
+    // ✅ Enviar email del usuario logueado (si existe)
+    if (typeof window !== 'undefined') {
+      try {
+        // Intentar obtener el email desde Supabase Auth
+        const authData = localStorage.getItem('sb-voiarysvrncxnyegsitm-auth-token');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          if (parsed?.user?.email) {
+            config.headers['X-User-Email'] = parsed.user.email;
+          }
+        }
+        
+        // Fallback: buscar en localStorage 'user'
+        if (!config.headers['X-User-Email']) {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            if (user?.email) {
+              config.headers['X-User-Email'] = user.email;
+            }
+          }
+        }
+      } catch (e) {
+        // Silencioso
+      }
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -48,7 +78,6 @@ export const movimientoService = {
   delete: (id) => api.delete(`/movimientos/${id}/`),
 };
 
-// ✅ NUEVO: Servicios para Auditoría
 export const auditService = {
   getAll: (params) => api.get('/audit-log/', { params }),
   getStats: () => api.get('/audit-log/stats'),

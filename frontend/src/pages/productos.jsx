@@ -11,34 +11,28 @@ import {
 } from 'react-icons/fi';
 import { itemService, warehouseService } from '../services/api';
 
-const PAGE_SIZE = 50; // ✅ 50 productos por página
+const PAGE_SIZE = 50;
 
 export default function Productos() {
   const { t } = useTranslation();
   const { canEdit, canDelete } = useAuth();
   
-  // Estados principales
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showActionsModal, setShowActionsModal] = useState(false);
-  
-  // ✅ Lista de categorías únicas (cargada del backend)
   const [categorias, setCategorias] = useState([]);
   
-  // Filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   
-  // Paginación (server-side)
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   
-  // Datos del formulario
   const [formData, setFormData] = useState({
     nombre: '',
     codigo: '',
@@ -53,37 +47,30 @@ export default function Productos() {
     almacen_id: ''
   });
 
-  // Cargar almacenes y categorías al inicio
   useEffect(() => {
     fetchWarehouses();
     fetchCategorias();
   }, []);
 
-  // Cargar items cuando cambian los filtros o la página
   useEffect(() => {
     fetchItems();
   }, [currentPage, searchTerm, selectedWarehouse, selectedCategory]);
 
-  // ✅ Función para cargar items (con paginación server-side)
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
-      
       const params = {
         skip: (currentPage - 1) * PAGE_SIZE,
         limit: PAGE_SIZE,
       };
-      
       if (searchTerm) params.search = searchTerm;
       if (selectedWarehouse) params.almacen_id = selectedWarehouse;
       if (selectedCategory) params.categoria = selectedCategory;
       
       const res = await itemService.getPaginated(params);
-      
       setItems(res.data.data || []);
       setTotalItems(res.data.total || 0);
       setTotalPages(res.data.pages || 1);
-      
     } catch (error) {
       console.error('Error al cargar items:', error);
       toast.error(t('products.errorLoading'));
@@ -102,34 +89,24 @@ export default function Productos() {
     }
   };
 
-  // ✅ Cargar categorías únicas desde todos los items
   const fetchCategorias = async () => {
     try {
-      // Pedimos todos los items (sin paginación real) solo para extraer categorías únicas
       const res = await itemService.getAll({ limit: 10000 });
       const allItems = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-      
-      // Extraer valores únicos de la columna 'categoria'
       const uniqueCategorias = [...new Set(
-        allItems
-          .map(i => i.categoria)
-          .filter(Boolean)
-          .map(c => c.trim())
+        allItems.map(i => i.categoria).filter(Boolean).map(c => c.trim())
       )].sort();
-      
       setCategorias(uniqueCategorias);
     } catch (error) {
       console.error('Error al cargar categorías:', error);
     }
   };
 
-  // ✅ Resetear a página 1 al cambiar filtros
   const handleFilterChange = (setter) => (value) => {
     setter(value);
     setCurrentPage(1);
   };
 
-  // ✅ Limpiar filtros
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedWarehouse('');
@@ -137,13 +114,11 @@ export default function Productos() {
     setCurrentPage(1);
   };
 
-  // ✅ Abrir modal de opciones
   const handleRowClick = (item) => {
     setSelectedItem(item);
     setShowActionsModal(true);
   };
 
-  // ✅ Abrir modal de edición
   const handleEdit = (item) => {
     if (!canEdit()) {
       toast.error('❌ No tienes permisos para editar productos');
@@ -167,7 +142,6 @@ export default function Productos() {
     setShowEditModal(true);
   };
 
-  // ✅ Guardar cambios
   const handleSave = async (e) => {
     e.preventDefault();
     if (!canEdit()) {
@@ -188,13 +162,12 @@ export default function Productos() {
       toast.success(t('products.saveSuccess'));
       setShowEditModal(false);
       fetchItems();
-      fetchCategorias(); // ✅ Recargar categorías por si se cambió alguna
+      fetchCategorias();
     } catch (error) {
       toast.error(t('products.saveError'));
     }
   };
 
-  // ✅ Eliminar producto
   const handleDelete = async (id) => {
     if (!canDelete()) {
       toast.error('❌ Solo los administradores pueden eliminar productos');
@@ -213,27 +186,19 @@ export default function Productos() {
     }
   };
 
-  // ✅ Navegación de páginas
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ✅ Generar botones de páginas (muestra 5 páginas alrededor de la actual)
   const getPageNumbers = () => {
     const pages = [];
     const maxVisible = 5;
     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
     let end = Math.min(totalPages, start + maxVisible - 1);
-    
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-    
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
     return pages;
   };
 
@@ -272,7 +237,6 @@ export default function Productos() {
       {/* Filtros */}
       <div className="glass rounded-2xl p-4 mb-6 border border-white/5">
         <div className="flex flex-col md:flex-row gap-3">
-          {/* Búsqueda */}
           <div className="flex-1 min-w-[200px] relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
@@ -292,7 +256,6 @@ export default function Productos() {
             )}
           </div>
 
-          {/* Filtro Almacén */}
           <select
             value={selectedWarehouse}
             onChange={(e) => handleFilterChange(setSelectedWarehouse)(e.target.value)}
@@ -304,7 +267,6 @@ export default function Productos() {
             ))}
           </select>
 
-          {/* ✅ Filtro Categoría DINÁMICO */}
           <select
             value={selectedCategory}
             onChange={(e) => handleFilterChange(setSelectedCategory)(e.target.value)}
@@ -316,7 +278,6 @@ export default function Productos() {
             ))}
           </select>
 
-          {/* Limpiar */}
           <button
             onClick={handleClearFilters}
             className="px-4 py-2 rounded-xl glass text-gray-400 hover:text-white flex items-center gap-2"
@@ -327,24 +288,23 @@ export default function Productos() {
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* ✅ Tabla con columnas unificadas */}
       <div className="overflow-x-auto glass rounded-2xl border border-white/5">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-white/10 bg-white/5">
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.code')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.name')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden lg:table-cell">{t('products.description')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden md:table-cell">{t('products.category')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.stock')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase hidden sm:table-cell">{t('products.price')}</th>
-              <th className="px-4 py-3 text-xs text-gray-400 uppercase">{t('products.warehouse')}</th>
+              <th className="px-3 py-3 text-xs text-gray-400 uppercase">{t('products.code')}</th>
+              <th className="px-3 py-3 text-xs text-gray-400 uppercase">Producto</th>
+              <th className="px-3 py-3 text-xs text-gray-400 uppercase hidden md:table-cell">{t('products.category')}</th>
+              <th className="px-3 py-3 text-xs text-gray-400 uppercase">{t('products.stock')}</th>
+              <th className="px-3 py-3 text-xs text-gray-400 uppercase hidden sm:table-cell">{t('products.price')}</th>
+              <th className="px-3 py-3 text-xs text-gray-400 uppercase">{t('products.warehouse')}</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
                   <FiBox className="w-12 h-12 text-gray-600 mx-auto mb-3" />
                   {t('products.noProducts')}
                 </td>
@@ -356,13 +316,21 @@ export default function Productos() {
                   className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
                   onClick={() => handleRowClick(item)}
                 >
-                  <td className="px-4 py-3 text-gray-400 font-mono text-sm">{item.codigo}</td>
-                  <td className="px-4 py-3 text-white font-medium max-w-[200px] truncate">{item.nombre}</td>
-                  <td className="px-4 py-3 text-gray-400 text-sm hidden lg:table-cell max-w-[250px] truncate">{item.descripcion}</td>
-                  <td className="px-4 py-3 text-gray-400 text-sm hidden md:table-cell">{item.categoria}</td>
-                  <td className="px-4 py-3 text-white">{item.stock}</td>
-                  <td className="px-4 py-3 text-neon-green hidden sm:table-cell">S/ {Number(item.precio || 0).toFixed(2)}</td>
-                  <td className="px-4 py-3 text-gray-400 text-sm">{item.almacen_nombre || 'N/A'}</td>
+                  <td className="px-3 py-3 text-gray-400 font-mono text-xs whitespace-nowrap">{item.codigo}</td>
+                  <td className="px-3 py-3 text-white text-sm max-w-[280px]">
+                    <div className="font-medium break-words">{item.nombre}</div>
+                    {item.descripcion && item.descripcion !== item.nombre && (
+                      <div className="text-gray-400 text-xs mt-0.5 break-words">{item.descripcion}</div>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-gray-400 text-sm hidden md:table-cell whitespace-nowrap">{item.categoria}</td>
+                  <td className="px-3 py-3 text-white text-sm">{item.stock}</td>
+                  <td className="px-3 py-3 text-neon-green hidden sm:table-cell text-sm whitespace-nowrap">
+                    S/ {Number(item.precio || 0).toFixed(2)}
+                  </td>
+                  <td className="px-3 py-3 text-gray-400 text-sm whitespace-nowrap">
+                    {item.almacen_nombre || 'N/A'}
+                  </td>
                 </tr>
               ))
             )}
@@ -379,56 +347,21 @@ export default function Productos() {
         </div>
         
         <div className="flex items-center gap-1">
-          {/* Primera página */}
-          <button
-            onClick={() => goToPage(1)}
-            disabled={currentPage === 1}
-            className="px-2 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
-            title="Primera página"
-          >
+          <button onClick={() => goToPage(1)} disabled={currentPage === 1} className="px-2 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30">
             <FiChevronsLeft className="w-4 h-4" />
           </button>
-          
-          {/* Anterior */}
-          <button
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
-          >
+          <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30">
             <FiChevronLeft className="w-4 h-4" />
           </button>
-          
-          {/* Números de página */}
           {getPageNumbers().map(page => (
-            <button
-              key={page}
-              onClick={() => goToPage(page)}
-              className={`px-3 py-2 rounded-lg transition-all ${
-                page === currentPage
-                  ? 'bg-neon-blue text-white font-semibold'
-                  : 'glass text-gray-400 hover:text-white'
-              }`}
-            >
+            <button key={page} onClick={() => goToPage(page)} className={`px-3 py-2 rounded-lg transition-all ${page === currentPage ? 'bg-neon-blue text-white font-semibold' : 'glass text-gray-400 hover:text-white'}`}>
               {page}
             </button>
           ))}
-          
-          {/* Siguiente */}
-          <button
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
-          >
+          <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30">
             <FiChevronRight className="w-4 h-4" />
           </button>
-          
-          {/* Última página */}
-          <button
-            onClick={() => goToPage(totalPages)}
-            disabled={currentPage === totalPages}
-            className="px-2 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30"
-            title="Última página"
-          >
+          <button onClick={() => goToPage(totalPages)} disabled={currentPage === totalPages} className="px-2 py-2 rounded-lg glass text-gray-400 hover:text-white disabled:opacity-30">
             <FiChevronsRight className="w-4 h-4" />
           </button>
         </div>
@@ -443,35 +376,24 @@ export default function Productos() {
                 <FiBox className="w-5 h-5 text-neon-blue" />
                 <span className="truncate">{selectedItem.nombre}</span>
               </h2>
-              <button
-                onClick={() => setShowActionsModal(false)}
-                className="p-2 rounded-lg text-gray-400 hover:text-white"
-              >
+              <button onClick={() => setShowActionsModal(false)} className="p-2 rounded-lg text-gray-400 hover:text-white">
                 <FiX className="w-5 h-5" />
               </button>
             </div>
             
             <div className="space-y-2">
               {canEdit() && (
-                <button
-                  onClick={() => handleEdit(selectedItem)}
-                  className="w-full px-4 py-3 rounded-xl bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors flex items-center gap-2"
-                >
+                <button onClick={() => handleEdit(selectedItem)} className="w-full px-4 py-3 rounded-xl bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 transition-colors flex items-center gap-2">
                   <FiEdit2 className="w-5 h-5" />
                   {t('products.edit')}
                 </button>
               )}
-              
               {canDelete() && (
-                <button
-                  onClick={() => handleDelete(selectedItem.id)}
-                  className="w-full px-4 py-3 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors flex items-center gap-2"
-                >
+                <button onClick={() => handleDelete(selectedItem.id)} className="w-full px-4 py-3 rounded-xl bg-red-600/20 text-red-400 hover:bg-red-600/40 transition-colors flex items-center gap-2">
                   <FiTrash2 className="w-5 h-5" />
                   {t('products.delete')}
                 </button>
               )}
-
               {!canEdit() && !canDelete() && (
                 <div className="text-center text-gray-400 text-sm py-4">
                   <FiEye className="w-8 h-8 mx-auto mb-2 text-gray-600" />
@@ -493,10 +415,7 @@ export default function Productos() {
           <div className="glass rounded-2xl w-full max-w-2xl p-6 border border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-white">{t('products.edit')}</h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-2 rounded-lg text-gray-400 hover:text-white"
-              >
+              <button onClick={() => setShowEditModal(false)} className="p-2 rounded-lg text-gray-400 hover:text-white">
                 <FiX className="w-5 h-5" />
               </button>
             </div>
@@ -504,115 +423,57 @@ export default function Productos() {
             <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-400 mb-1">{t('products.name')}</label>
-                <input
-                  type="text"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="input-glass w-full"
-                  required
-                />
+                <input type="text" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} className="input-glass w-full" required />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.code')}</label>
-                <input
-                  type="text"
-                  value={formData.codigo}
-                  onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
-                  className="input-glass w-full"
-                  required
-                />
+                <input type="text" value={formData.codigo} onChange={(e) => setFormData({ ...formData, codigo: e.target.value })} className="input-glass w-full" required />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.category')}</label>
-                <input
-                  type="text"
-                  value={formData.categoria}
-                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="text" value={formData.categoria} onChange={(e) => setFormData({ ...formData, categoria: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-400 mb-1">{t('products.description')}</label>
-                <input
-                  type="text"
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="text" value={formData.descripcion} onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.stock')}</label>
-                <input
-                  type="number"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.stockMin')}</label>
-                <input
-                  type="number"
-                  value={formData.stock_minimo}
-                  onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="number" value={formData.stock_minimo} onChange={(e) => setFormData({ ...formData, stock_minimo: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.price')}</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.precio}
-                  onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="number" step="0.01" value={formData.precio} onChange={(e) => setFormData({ ...formData, precio: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.costPrice')}</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.precio_costo}
-                  onChange={(e) => setFormData({ ...formData, precio_costo: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="number" step="0.01" value={formData.precio_costo} onChange={(e) => setFormData({ ...formData, precio_costo: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.unit')}</label>
-                <input
-                  type="text"
-                  value={formData.unidad_medida}
-                  onChange={(e) => setFormData({ ...formData, unidad_medida: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="text" value={formData.unidad_medida} onChange={(e) => setFormData({ ...formData, unidad_medida: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.location')}</label>
-                <input
-                  type="text"
-                  value={formData.ubicacion}
-                  onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
-                  className="input-glass w-full"
-                />
+                <input type="text" value={formData.ubicacion} onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })} className="input-glass w-full" />
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm text-gray-400 mb-1">{t('products.warehouse')}</label>
-                <select
-                  value={formData.almacen_id}
-                  onChange={(e) => setFormData({ ...formData, almacen_id: e.target.value })}
-                  className="input-glass w-full"
-                >
+                <select value={formData.almacen_id} onChange={(e) => setFormData({ ...formData, almacen_id: e.target.value })} className="input-glass w-full">
                   <option value="">{t('products.noWarehouse')}</option>
                   {warehouses.map(w => (
                     <option key={w.id} value={w.id}>{w.nombre}</option>
@@ -621,18 +482,11 @@ export default function Productos() {
               </div>
 
               <div className="md:col-span-2 flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="btn-neon text-white flex-1 py-2 flex items-center justify-center gap-2"
-                >
+                <button type="submit" className="btn-neon text-white flex-1 py-2 flex items-center justify-center gap-2">
                   <FiRefreshCw className="w-4 h-4" />
                   {t('products.save')}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="btn-glass text-white flex-1 py-2 flex items-center justify-center gap-2"
-                >
+                <button type="button" onClick={() => setShowEditModal(false)} className="btn-glass text-white flex-1 py-2 flex items-center justify-center gap-2">
                   <FiX className="w-4 h-4" />
                   {t('products.cancel')}
                 </button>

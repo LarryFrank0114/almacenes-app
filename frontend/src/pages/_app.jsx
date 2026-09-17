@@ -11,6 +11,18 @@ function MyApp({ Component, pageProps }) {
 
   useEffect(() => {
     setMounted(true);
+    
+    // ✅ Registrar Service Worker para PWA
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          console.log('✅ Service Worker registrado:', registration.scope);
+        })
+        .catch((error) => {
+          console.warn('⚠️ Error al registrar Service Worker:', error);
+        });
+    }
   }, []);
 
   return (

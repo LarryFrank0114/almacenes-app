@@ -9,9 +9,6 @@ from ..utils.audit_helper import registrar_auditoria, registrar_cambios_item
 
 router = APIRouter(prefix="/items", tags=["Items"])
 
-# Usuario temporal (en el futuro vendrá del token JWT)
-USUARIO_TEMPORAL = "admin@almacenes.com"
-
 
 @router.get("/")
 def get_items(
@@ -99,7 +96,6 @@ def create_item(
     db.commit()
     db.refresh(db_item)
     
-    # ✅ Registrar creación en auditoría
     registrar_auditoria(
         db=db,
         accion="crear",
@@ -108,7 +104,7 @@ def create_item(
         campo=None,
         valor_anterior=None,
         valor_nuevo=f"Producto '{db_item.nombre}' (código: {db_item.codigo})",
-        usuario_email=USUARIO_TEMPORAL,
+        usuario_email=None,  # ✅ Lee el header X-User-Email
         request=request
     )
     
@@ -126,7 +122,6 @@ def update_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
     
-    # ✅ Guardar datos anteriores
     datos_anteriores = {
         "nombre": db_item.nombre,
         "codigo": db_item.codigo,
@@ -141,7 +136,6 @@ def update_item(
         "almacen_id": db_item.almacen_id,
     }
     
-    # Aplicar cambios
     update_data = item_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_item, key, value)
@@ -149,7 +143,6 @@ def update_item(
     db.commit()
     db.refresh(db_item)
     
-    # ✅ Registrar cambios
     datos_nuevos = {
         "nombre": db_item.nombre,
         "codigo": db_item.codigo,
@@ -169,7 +162,7 @@ def update_item(
         item_id=item_id,
         datos_anteriores=datos_anteriores,
         datos_nuevos=datos_nuevos,
-        usuario_email=USUARIO_TEMPORAL,
+        usuario_email=None,  # ✅ Lee el header X-User-Email
         request=request
     )
     
@@ -186,14 +179,12 @@ def delete_item(
     if not db_item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
     
-    # ✅ Guardar datos antes de eliminar
     nombre_producto = db_item.nombre
     codigo_producto = db_item.codigo
     
     db_item.activo = False
     db.commit()
     
-    # ✅ Registrar eliminación
     registrar_auditoria(
         db=db,
         accion="eliminar",
@@ -202,7 +193,7 @@ def delete_item(
         campo=None,
         valor_anterior=f"Producto '{nombre_producto}' (código: {codigo_producto})",
         valor_nuevo=None,
-        usuario_email=USUARIO_TEMPORAL,
+        usuario_email=None,  # ✅ Lee el header X-User-Email
         request=request
     )
     
@@ -229,7 +220,6 @@ def update_stock(
     db.commit()
     db.refresh(db_item)
     
-    # ✅ Registrar cambio de stock
     registrar_auditoria(
         db=db,
         accion="editar",
@@ -238,7 +228,7 @@ def update_stock(
         campo="stock",
         valor_anterior=stock_anterior,
         valor_nuevo=nueva_cantidad,
-        usuario_email=USUARIO_TEMPORAL,
+        usuario_email=None,  # ✅ Lee el header X-User-Email
         request=request
     )
     

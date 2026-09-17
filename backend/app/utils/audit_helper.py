@@ -16,30 +16,18 @@ def registrar_auditoria(
     usuario_id: Optional[str] = None,
     request: Optional[Request] = None
 ):
-    """
-    Registra un cambio en la tabla de auditoría.
-    
-    Args:
-        db: Sesión de base de datos
-        accion: 'crear', 'editar', 'eliminar', 'importar'
-        tabla: 'items', 'almacenes', etc.
-        registro_id: ID del registro afectado
-        campo: Campo específico que cambió (None si es creación/eliminación completa)
-        valor_anterior: Valor antes del cambio
-        valor_nuevo: Valor después del cambio
-        usuario_email: Email del usuario que hizo el cambio
-        usuario_id: ID del usuario
-        request: Request de FastAPI para obtener IP y User-Agent
-    """
+    """Registra un cambio en la tabla de auditoría."""
     try:
-        # Obtener IP y User-Agent si hay request
         ip = None
         user_agent = None
         if request:
             ip = request.client.host if request.client else None
             user_agent = request.headers.get("user-agent")
+            
+            # ✅ NUEVO: Leer email del header X-User-Email
+            if not usuario_email:
+                usuario_email = request.headers.get("x-user-email")
         
-        # Convertir valores a string
         valor_anterior_str = str(valor_anterior) if valor_anterior is not None else None
         valor_nuevo_str = str(valor_nuevo) if valor_nuevo is not None else None
         
@@ -60,7 +48,6 @@ def registrar_auditoria(
         db.refresh(log)
         return log
     except Exception as e:
-        # No queremos que un error de auditoría rompa la operación principal
         print(f"⚠️ Error al registrar auditoría: {e}")
         db.rollback()
         return None
@@ -75,9 +62,7 @@ def registrar_cambios_item(
     usuario_id: Optional[str] = None,
     request: Optional[Request] = None
 ):
-    """
-    Compara los datos anteriores con los nuevos y registra SOLO los campos que cambiaron.
-    """
+    """Compara datos anteriores y nuevos, y registra SOLO los campos que cambiaron."""
     campos_a_ignorar = {'id', 'created_at', 'updated_at'}
     
     for campo, valor_nuevo in datos_nuevos.items():
@@ -86,7 +71,6 @@ def registrar_cambios_item(
         
         valor_anterior = datos_anteriores.get(campo)
         
-        # Normalizar valores para comparación
         valor_anterior_norm = str(valor_anterior) if valor_anterior is not None else None
         valor_nuevo_norm = str(valor_nuevo) if valor_nuevo is not None else None
         

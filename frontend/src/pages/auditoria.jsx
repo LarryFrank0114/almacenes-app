@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { 
   FiSearch, FiFilter, FiX, FiRefreshCw, 
   FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight,
-  FiEdit2, FiTrash2, FiPlus, FiActivity, FiPackage
+  FiEdit2, FiTrash2, FiPlus, FiActivity, FiPackage,
+  FiDownload
 } from 'react-icons/fi';
 import { auditService } from '../services/api';
 
@@ -65,6 +67,44 @@ export default function Auditoria() {
       setStats(res.data || { total: 0, por_accion: [], por_usuario: [] });
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
+    }
+  };
+
+  // ✅ NUEVO: Exportar a Excel
+  const exportToExcel = () => {
+    if (logs.length === 0) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+
+    try {
+      const dataToExport = logs.map((log) => ({
+        'Fecha': formatDate(log.created_at),
+        'Usuario': log.usuario_email || 'N/A',
+        'Acción': log.accion,
+        'Tabla': log.tabla,
+        'Registro': log.registro_id || 'N/A',
+        'Campo': log.campo || '—',
+        'Valor Anterior': log.valor_anterior || '—',
+        'Valor Nuevo': log.valor_nuevo || '—',
+        'IP': log.ip || 'N/A'
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      ws['!cols'] = [
+        { wch: 22 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 10 },
+        { wch: 18 }, { wch: 25 }, { wch: 25 }, { wch: 18 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Auditoría');
+
+      const fecha = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `auditoria_${fecha}.xlsx`);
+      toast.success('✅ Archivo Excel generado');
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      toast.error('❌ Error al generar el Excel');
     }
   };
 
@@ -149,10 +189,17 @@ export default function Auditoria() {
             Registro de cambios — <span className="text-neon-green font-semibold">{totalItems.toLocaleString()} eventos</span>
           </p>
         </div>
-        <button onClick={() => { fetchLogs(); fetchStats(); }} className="btn-neon text-white flex items-center gap-2 px-4 py-2">
-          <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </button>
+        <div className="flex gap-2">
+          {/* ✅ Botón de exportar a Excel */}
+          <button onClick={exportToExcel} className="btn-glass text-white flex items-center gap-2 px-4 py-2">
+            <FiDownload className="w-4 h-4" />
+            Exportar Excel
+          </button>
+          <button onClick={() => { fetchLogs(); fetchStats(); }} className="btn-neon text-white flex items-center gap-2 px-4 py-2">
+            <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {stats.total > 0 && (
