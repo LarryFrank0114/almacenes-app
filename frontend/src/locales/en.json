@@ -11,7 +11,8 @@
     "logout": "Logout",
     "login": "Login",
     "subtitle": "Management System",
-    "changeLanguage": "Change language"
+    "changeLanguage": "Change language",
+    "audit": "Audit"
   },
   "dashboard": {
     "welcome": "Welcome",

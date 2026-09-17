@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// ✅ URL hardcodeada para producción
 const API_URL = 'https://almacenes-app-production.up.railway.app';
 
 const api = axios.create({
@@ -10,25 +9,19 @@ const api = axios.create({
   },
 });
 
-// ✅ Interceptor para forzar HTTPS en TODAS las peticiones
 api.interceptors.request.use(
   (config) => {
-    // Corregir baseURL si es HTTP
     if (config.baseURL && config.baseURL.startsWith('http://')) {
       config.baseURL = config.baseURL.replace('http://', 'https://');
     }
-    // Corregir url si es HTTP (para peticiones absolutas)
     if (config.url && config.url.startsWith('http://')) {
       config.url = config.url.replace('http://', 'https://');
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Servicios para Almacenes
 export const warehouseService = {
   getAll: () => api.get('/almacenes/'),
   getById: (id) => api.get(`/almacenes/${id}/`),
@@ -37,7 +30,6 @@ export const warehouseService = {
   delete: (id) => api.delete(`/almacenes/${id}/`),
 };
 
-// ✅ Servicios para Items CON PAGINACIÓN
 export const itemService = {
   getPaginated: (params) => api.get('/items/', { params }),
   getAll: (params) => api.get('/items/', { params }),
@@ -49,7 +41,6 @@ export const itemService = {
   getStats: () => api.get('/items/stats/count'),
 };
 
-// ✅ NUEVO: Servicios para Movimientos
 export const movimientoService = {
   getAll: (params) => api.get('/movimientos/', { params }),
   getById: (id) => api.get(`/movimientos/${id}/`),
@@ -57,7 +48,13 @@ export const movimientoService = {
   delete: (id) => api.delete(`/movimientos/${id}/`),
 };
 
-// Servicios para Configuración
+// ✅ NUEVO: Servicios para Auditoría
+export const auditService = {
+  getAll: (params) => api.get('/audit-log/', { params }),
+  getStats: () => api.get('/audit-log/stats'),
+  getItemHistory: (itemId) => api.get(`/audit-log/item/${itemId}`),
+};
+
 export const configuracionService = {
   get: () => api.get('/configuracion/'),
   update: (data) => api.put('/configuracion/', data),

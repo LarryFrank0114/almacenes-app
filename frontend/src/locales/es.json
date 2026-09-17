@@ -11,7 +11,8 @@
     "logout": "Cerrar sesión",
     "login": "Login",
     "subtitle": "Sistema de Gestión",
-    "changeLanguage": "Cambiar idioma"
+    "changeLanguage": "Cambiar idioma",
+    "audit": "Auditoría"
   },
   "dashboard": {
     "welcome": "Bienvenido",

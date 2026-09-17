@@ -11,7 +11,8 @@
     "logout": "登出",
     "login": "登录",
     "subtitle": "管理系统",
-    "changeLanguage": "更改语言"
+    "changeLanguage": "更改语言",
+    "audit": "审计"
   },
   "dashboard": {
     "welcome": "欢迎",

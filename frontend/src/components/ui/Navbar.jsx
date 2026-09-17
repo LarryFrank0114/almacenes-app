@@ -9,7 +9,7 @@ import { getConfig } from '../../services/configService';
 import { 
   FiLogOut, FiUser, FiHome,
   FiMap, FiBox, FiRefreshCw, FiBarChart2, 
-  FiUpload, FiUsers, FiSettings
+  FiUpload, FiUsers, FiSettings, FiActivity
 } from 'react-icons/fi';
 
 export default function Navbar() {
@@ -25,7 +25,6 @@ export default function Navbar() {
     primarycolor: '#00d4ff'
   });
 
-  // ✅ OBTENER CONFIGURACIÓN DESDE configService
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -48,7 +47,6 @@ export default function Navbar() {
 
   if (!mounted) return null;
 
-  // ✅ MENÚS CON i18n
   const mainNavItems = [
     { href: '/', icon: FiHome, label: t('nav.dashboard') },
     { href: '/almacenes', icon: FiMap, label: t('nav.warehouses') },
@@ -64,6 +62,7 @@ export default function Navbar() {
     { href: '/cargar-excel', icon: FiUpload, label: t('nav.upload') },
     { href: '/usuarios', icon: FiUsers, label: t('nav.users') },
     { href: '/configuracion', icon: FiSettings, label: t('nav.settings') },
+    { href: '/auditoria', icon: FiActivity, label: t('nav.audit') },  // ✅ NUEVO
   ];
 
   const changeLanguage = (lng) => {
@@ -80,7 +79,6 @@ export default function Navbar() {
     <nav className="glass sticky top-0 z-50 border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-14">
-          {/* LOGO Y NOMBRE DE EMPRESA */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 group">
               <div 
@@ -107,7 +105,6 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* NAV CENTRAL */}
           <div className="hidden md:flex items-center gap-0.5">
             {mainNavItems.map((item) => {
               const isActive = router.pathname === item.href;
@@ -150,9 +147,7 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* DERECHA - USUARIO + MENÚ ADMIN */}
           <div className="flex items-center gap-1.5">
-            {/* Idioma */}
             <button
               onClick={() => changeLanguage(i18n.language === 'es' ? 'en' : i18n.language === 'en' ? 'zh' : 'es')}
               className="p-1.5 rounded-lg glass-hover text-gray-400 hover:text-white transition-colors text-sm"
@@ -161,7 +156,6 @@ export default function Navbar() {
               {languages[i18n.language]?.flag || '🇪🇸'}
             </button>
 
-            {/* USUARIO */}
             {user ? (
               <div className="flex items-center gap-1.5 glass px-2 py-1 rounded-lg">
                 <div className="w-7 h-7 rounded-full overflow-hidden border border-neon-blue/30 flex-shrink-0">
@@ -199,7 +193,6 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* MENÚ DE ADMIN */}
             {isAdmin() && (
               <div className="relative">
                 <button
@@ -246,7 +239,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MOBILE */}
       <div className="md:hidden glass border-t border-white/5">
         <div className="flex overflow-x-auto px-2 py-1.5 gap-1">
           {[...mainNavItems, ...secondaryNavItems, ...(isAdmin() ? adminNavItems : [])].map((item) => {
