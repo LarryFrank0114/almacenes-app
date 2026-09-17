@@ -55,6 +55,36 @@ def get_items(
     }
 
 
+# ⚠️ IMPORTANTE: Esta ruta debe ir ANTES de /{item_id} para que no haya conflicto
+@router.get("/stats/count")
+def get_items_stats(db: Session = Depends(get_db)):
+    """
+    Retorna estadísticas globales del inventario calculadas en la base de datos.
+    - total_items: Cantidad total de productos activos
+    - stock_total: Suma de todo el stock
+    - stock_bajo: Cantidad de productos con stock <= stock_minimo
+    - valor_inventario: Suma de (stock * precio) de todos los productos
+    """
+    total_items = db.query(func.count(Item.id)).filter(Item.activo == True).scalar()
+    stock_total = db.query(func.sum(Item.stock)).filter(Item.activo == True).scalar() or 0
+    stock_bajo = db.query(func.count(Item.id)).filter(
+        Item.activo == True,
+        Item.stock <= Item.stock_minimo
+    ).scalar()
+    
+    # ✅ NUEVO: Calcular valor del inventario (stock * precio)
+    valor_inventario = db.query(
+        func.sum(Item.stock * Item.precio)
+    ).filter(Item.activo == True).scalar() or 0
+
+    return {
+        "total_items": total_items,
+        "stock_total": float(stock_total),
+        "stock_bajo": stock_bajo,
+        "valor_inventario": float(valor_inventario)  # ✅ Asegurar float
+    }
+
+
 @router.get("/{item_id}", response_model=ItemSchema)
 def get_item(item_id: int, db: Session = Depends(get_db)):
     item = db.query(Item).options(joinedload(Item.almacen)).filter(
@@ -115,20 +145,3 @@ def update_stock(item_id: int, cantidad: int = Query(...), db: Session = Depends
     db.commit()
     db.refresh(db_item)
     return {"id": item_id, "stock": db_item.stock}
-
-
-@router.get("/stats/count")
-def get_items_stats(db: Session = Depends(get_db)):
-    """Retorna el total de items y el stock total."""
-    total_items = db.query(func.count(Item.id)).filter(Item.activo == True).scalar()
-    stock_total = db.query(func.sum(Item.stock)).filter(Item.activo == True).scalar() or 0
-    stock_bajo = db.query(func.count(Item.id)).filter(
-        Item.activo == True,
-        Item.stock <= Item.stock_minimo
-    ).scalar()
-    
-    return {
-        "total_items": total_items,
-        "stock_total": stock_total,
-        "stock_bajo": stock_bajo
-    }
