@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from .core.database import engine, Base
 from .routers import almacenes, items, configuracion, usuarios, notificaciones, movimientos
 
@@ -8,6 +9,10 @@ app = FastAPI(
     description="API para gestionar múltiples almacenes e inventario",
     version="1.0.0"
 )
+
+# ✅ CRÍTICO: Confiar en los headers del proxy de Railway
+# Esto hace que FastAPI detecte correctamente HTTPS detrás del proxy
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 # CORS
 app.add_middleware(
