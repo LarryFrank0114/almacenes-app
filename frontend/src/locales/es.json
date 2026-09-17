@@ -25,6 +25,7 @@
     "viewProducts": "Ver productos",
     "viewStock": "Ver stock",
     "viewWarehouses": "Ver almacenes",
+    "viewLowStock": "Ver stock bajo",
     "viewAlerts": "Ver alertas",
     "loading": "Cargando datos...",
     "errorLoading": "Error al cargar estadísticas",
@@ -32,7 +33,12 @@
     "sending": "Enviando...",
     "noLowStock": "No hay productos con stock bajo",
     "notificationError": "Error al enviar notificaciones",
-    "thisMonth": "este mes"
+    "thisMonth": "este mes",
+    "lastUpdate": "Last update",
+    "manageProducts": "Manage products",
+    "manageProductsDesc": "View, edit and manage your inventory",
+    "manageWarehouses": "Manage warehouses",
+    "manageWarehousesDesc": "Manage your warehouses and locations"
   },
   "products": {
     "title": "Productos",
@@ -97,7 +103,7 @@
     "location": "Ubicación",
     "exportExcel": "Excel"
   },
-    "users": {
+  "users": {
     "title": "Usuarios",
     "subtitle": "Gestiona los usuarios y sus roles"
   }

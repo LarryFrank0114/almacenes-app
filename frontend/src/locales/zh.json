@@ -32,7 +32,13 @@
     "sendAlerts": "发送警报",
     "sending": "发送中...",
     "noLowStock": "没有低库存产品",
-    "notificationError": "发送通知时出错"
+    "notificationError": "发送通知时出错",
+    "lastUpdate": "最后更新",
+    "manageProducts": "管理产品",
+    "manageProductsDesc": "查看、编辑和管理您的库存",
+    "manageWarehouses": "管理仓库",
+    "manageWarehousesDesc": "管理您的仓库和位置",
+    "viewLowStock": "查看低库存"
   },
   "products": {
     "title": "产品",

@@ -72,9 +72,11 @@ def get_items_stats(db: Session = Depends(get_db)):
         Item.stock <= Item.stock_minimo
     ).scalar()
     
-    # ✅ NUEVO: Calcular valor del inventario (stock * precio)
+    # ✅ Usar COALESCE para tratar None como 0 en stock y precio
     valor_inventario = db.query(
-        func.sum(Item.stock * Item.precio)
+        func.sum(
+            func.coalesce(Item.stock, 0) * func.coalesce(Item.precio, 0)
+        )
     ).filter(Item.activo == True).scalar() or 0
 
     return {
