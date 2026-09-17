@@ -34,11 +34,11 @@
     "noLowStock": "No hay productos con stock bajo",
     "notificationError": "Error al enviar notificaciones",
     "thisMonth": "este mes",
-    "lastUpdate": "Last update",
-    "manageProducts": "Manage products",
-    "manageProductsDesc": "View, edit and manage your inventory",
-    "manageWarehouses": "Manage warehouses",
-    "manageWarehousesDesc": "Manage your warehouses and locations"
+    "lastUpdate": "Última actualización",
+    "manageProducts": "Gestionar productos",
+    "manageProductsDesc": "Ver, editar y administrar tu inventario",
+    "manageWarehouses": "Gestionar almacenes",
+    "manageWarehousesDesc": "Administrar tus almacenes y ubicaciones"
   },
   "products": {
     "title": "Productos",
