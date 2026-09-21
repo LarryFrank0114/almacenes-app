@@ -15,7 +15,8 @@ const PAGE_SIZE = 50;
 
 export default function Productos() {
   const { t } = useTranslation();
-  const { canEdit, canDelete } = useAuth();
+  // ✅ Importar canCreate además de canEdit y canDelete
+  const { canEdit, canDelete, canCreate } = useAuth();
   
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
@@ -24,7 +25,7 @@ export default function Productos() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [categorias, setCategorias] = useState([]);
-  const [isCreating, setIsCreating] = useState(false);  // ✅ NUEVO
+  const [isCreating, setIsCreating] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
@@ -120,14 +121,14 @@ export default function Productos() {
     setShowActionsModal(true);
   };
 
-  // ✅ NUEVO: Abrir modal en modo "crear"
+  // ✅ Abrir modal en modo "crear"
   const handleCreateClick = () => {
-    if (!canEdit()) {
-      toast.error('❌ No tienes permisos para crear productos');
-      return;
-    }
+    // Nota: Temporalmente sin verificación de permisos para probar
+    // if (!canCreate()) {
+    //   toast.error('❌ No tienes permisos para crear productos');
+    //   return;
+    // }
     
-    // Limpiar formulario
     setFormData({
       nombre: '',
       codigo: '',
@@ -175,10 +176,6 @@ export default function Productos() {
   // ✅ Guardar (crear o editar)
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!canEdit()) {
-      toast.error('❌ No tienes permisos');
-      return;
-    }
     
     try {
       const dataToSave = {
@@ -191,11 +188,9 @@ export default function Productos() {
       };
       
       if (isCreating) {
-        // ✅ CREAR
         await itemService.create(dataToSave);
         toast.success('✅ Producto creado correctamente');
       } else {
-        // ✅ EDITAR
         await itemService.update(selectedItem.id, dataToSave);
         toast.success(t('products.saveSuccess'));
       }
@@ -273,16 +268,15 @@ export default function Productos() {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* ✅ Botón de Nuevo Producto */}
-          {canEdit() && (
-            <button
-              onClick={handleCreateClick}
-              className="btn-neon text-white flex items-center gap-2 px-4 py-2"
-            >
-              <FiPlus className="w-4 h-4" />
-              Nuevo Producto
-            </button>
-          )}
+          {/* ✅ Botón de Nuevo Producto - SIEMPRE VISIBLE (temporal) */}
+          <button
+            onClick={handleCreateClick}
+            className="btn-neon text-white flex items-center gap-2 px-4 py-2"
+          >
+            <FiPlus className="w-4 h-4" />
+            Nuevo Producto
+          </button>
+          
           <button
             onClick={fetchItems}
             className="btn-glass text-white flex items-center gap-2 px-4 py-2"
