@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { 
   FiSearch, FiFilter, FiX, FiEdit2, FiTrash2, 
   FiChevronLeft, FiChevronRight, FiRefreshCw, FiBox,
-  FiEye, FiChevronsLeft, FiChevronsRight
+  FiEye, FiChevronsLeft, FiChevronsRight, FiPlus
 } from 'react-icons/fi';
 import { itemService, warehouseService } from '../services/api';
 
@@ -24,6 +24,7 @@ export default function Productos() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [categorias, setCategorias] = useState([]);
+  const [isCreating, setIsCreating] = useState(false);  // ✅ NUEVO
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
@@ -119,6 +120,34 @@ export default function Productos() {
     setShowActionsModal(true);
   };
 
+  // ✅ NUEVO: Abrir modal en modo "crear"
+  const handleCreateClick = () => {
+    if (!canEdit()) {
+      toast.error('❌ No tienes permisos para crear productos');
+      return;
+    }
+    
+    // Limpiar formulario
+    setFormData({
+      nombre: '',
+      codigo: '',
+      descripcion: '',
+      categoria: '',
+      stock: '',
+      stock_minimo: '',
+      precio: '',
+      precio_costo: '',
+      unidad_medida: '',
+      ubicacion: '',
+      almacen_id: ''
+    });
+    
+    setSelectedItem(null);
+    setIsCreating(true);
+    setShowEditModal(true);
+  };
+
+  // ✅ Abrir modal en modo "editar"
   const handleEdit = (item) => {
     if (!canEdit()) {
       toast.error('❌ No tienes permisos para editar productos');
@@ -138,16 +167,19 @@ export default function Productos() {
       ubicacion: item.ubicacion || '',
       almacen_id: item.almacen_id || ''
     });
+    setIsCreating(false);
     setShowActionsModal(false);
     setShowEditModal(true);
   };
 
+  // ✅ Guardar (crear o editar)
   const handleSave = async (e) => {
     e.preventDefault();
     if (!canEdit()) {
-      toast.error('❌ No tienes permisos para editar productos');
+      toast.error('❌ No tienes permisos');
       return;
     }
+    
     try {
       const dataToSave = {
         ...formData,
@@ -158,13 +190,28 @@ export default function Productos() {
         almacen_id: formData.almacen_id ? parseInt(formData.almacen_id) : null
       };
       
-      await itemService.update(selectedItem.id, dataToSave);
-      toast.success(t('products.saveSuccess'));
+      if (isCreating) {
+        // ✅ CREAR
+        await itemService.create(dataToSave);
+        toast.success('✅ Producto creado correctamente');
+      } else {
+        // ✅ EDITAR
+        await itemService.update(selectedItem.id, dataToSave);
+        toast.success(t('products.saveSuccess'));
+      }
+      
       setShowEditModal(false);
+      setIsCreating(false);
+      setSelectedItem(null);
       fetchItems();
       fetchCategorias();
     } catch (error) {
-      toast.error(t('products.saveError'));
+      console.error('Error al guardar:', error);
+      if (error.response?.status === 400) {
+        toast.error('❌ El código ya existe o los datos son inválidos');
+      } else {
+        toast.error(isCreating ? '❌ Error al crear producto' : t('products.saveError'));
+      }
     }
   };
 
@@ -225,13 +272,25 @@ export default function Productos() {
             {t('products.subtitle')} — <span className="text-neon-green font-semibold">{totalItems.toLocaleString()} productos</span>
           </p>
         </div>
-        <button
-          onClick={fetchItems}
-          className="btn-neon text-white flex items-center gap-2 px-4 py-2"
-        >
-          <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {t('products.refresh')}
-        </button>
+        <div className="flex gap-2">
+          {/* ✅ Botón de Nuevo Producto */}
+          {canEdit() && (
+            <button
+              onClick={handleCreateClick}
+              className="btn-neon text-white flex items-center gap-2 px-4 py-2"
+            >
+              <FiPlus className="w-4 h-4" />
+              Nuevo Producto
+            </button>
+          )}
+          <button
+            onClick={fetchItems}
+            className="btn-glass text-white flex items-center gap-2 px-4 py-2"
+          >
+            <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            {t('products.refresh')}
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -288,7 +347,7 @@ export default function Productos() {
         </div>
       </div>
 
-      {/* ✅ Tabla con columnas unificadas */}
+      {/* Tabla */}
       <div className="overflow-x-auto glass rounded-2xl border border-white/5">
         <table className="w-full text-left">
           <thead>
@@ -409,31 +468,45 @@ export default function Productos() {
         </div>
       )}
 
-      {/* Modal de edición */}
+      {/* Modal de edición/creación */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="glass rounded-2xl w-full max-w-2xl p-6 border border-white/10 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-white">{t('products.edit')}</h2>
-              <button onClick={() => setShowEditModal(false)} className="p-2 rounded-lg text-gray-400 hover:text-white">
+              <h2 className="text-xl font-semibold text-white">
+                {isCreating ? 'Nuevo Producto' : t('products.edit')}
+              </h2>
+              <button 
+                onClick={() => {
+                  setShowEditModal(false);
+                  setIsCreating(false);
+                  setSelectedItem(null);
+                }} 
+                className="p-2 rounded-lg text-gray-400 hover:text-white"
+              >
                 <FiX className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm text-gray-400 mb-1">{t('products.name')}</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('products.name')} *</label>
                 <input type="text" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} className="input-glass w-full" required />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('products.code')}</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('products.code')} *</label>
                 <input type="text" value={formData.codigo} onChange={(e) => setFormData({ ...formData, codigo: e.target.value })} className="input-glass w-full" required />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-1">{t('products.category')}</label>
-                <input type="text" value={formData.categoria} onChange={(e) => setFormData({ ...formData, categoria: e.target.value })} className="input-glass w-full" />
+                <input type="text" value={formData.categoria} onChange={(e) => setFormData({ ...formData, categoria: e.target.value })} className="input-glass w-full" list="categorias-list" />
+                <datalist id="categorias-list">
+                  {categorias.map(cat => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
               </div>
 
               <div className="md:col-span-2">
@@ -483,10 +556,18 @@ export default function Productos() {
 
               <div className="md:col-span-2 flex gap-3 pt-4">
                 <button type="submit" className="btn-neon text-white flex-1 py-2 flex items-center justify-center gap-2">
-                  <FiRefreshCw className="w-4 h-4" />
-                  {t('products.save')}
+                  {isCreating ? <FiPlus className="w-4 h-4" /> : <FiRefreshCw className="w-4 h-4" />}
+                  {isCreating ? 'Crear Producto' : t('products.save')}
                 </button>
-                <button type="button" onClick={() => setShowEditModal(false)} className="btn-glass text-white flex-1 py-2 flex items-center justify-center gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setIsCreating(false);
+                    setSelectedItem(null);
+                  }} 
+                  className="btn-glass text-white flex-1 py-2 flex items-center justify-center gap-2"
+                >
                   <FiX className="w-4 h-4" />
                   {t('products.cancel')}
                 </button>
