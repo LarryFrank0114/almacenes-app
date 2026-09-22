@@ -69,6 +69,23 @@ export const itemService = {
   delete: (id) => api.delete(`/items/${id}/`),
   updateStock: (id, cantidad) => api.patch(`/items/${id}/stock`, null, { params: { cantidad } }),
   getStats: () => api.get('/items/stats/count'),
+  
+  // ✅ NUEVO: Analizar Excel sin modificar la BD
+  // Retorna: { total_filas, total_cambios, total_no_encontrados, total_errores, cambios: [...], no_encontrados: [...], errores: [...] }
+  previewBulkUpdate: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/items/preview-bulk-update', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  
+  // ✅ NUEVO: Aplicar los cambios aprobados
+  // Recibe: [{ item_id, stock_nuevo }, ...]
+  // Retorna: { message, actualizados, errores, detalle_errores }
+  applyBulkUpdate: (cambios) => {
+    return api.post('/items/apply-bulk-update', cambios);
+  },
 };
 
 export const movimientoService = {
