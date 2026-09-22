@@ -5,8 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useRouter } from 'next/router';
 import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
-import { 
-  FiUpload, FiFile, FiLoader, FiDownload, FiClock, 
+import {
+  FiUpload, FiFile, FiLoader, FiDownload, FiClock,
   FiAlertTriangle, FiCheckCircle, FiX, FiFilter,
   FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight,
   FiRefreshCw
@@ -18,10 +18,10 @@ const PAGE_SIZE = 50;
 export default function CargarExcel() {
   const router = useRouter();
   const { isAdmin, loading } = useAuth();
-  
+
   // Modo: 'create' (subir todos) o 'update' (actualizar stock)
   const [mode, setMode] = useState('update');
-  
+
   // Estados para modo 'update'
   const [previewData, setPreviewData] = useState(null);
   const [selectedCambios, setSelectedCambios] = useState({});
@@ -29,7 +29,7 @@ export default function CargarExcel() {
   const [currentPage, setCurrentPage] = useState(1);
   const [applying, setApplying] = useState(false);
   const [resultado, setResultado] = useState(null);
-  
+
   // Estados para modo 'create'
   const [file, setFile] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
@@ -56,14 +56,14 @@ export default function CargarExcel() {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-excel'
     ];
-    
-    if (!validTypes.includes(selectedFile.type) && !selectedFile.name.match(/\.(xlsx|xls)$/)) {
+
+    if (!validTypes.includes(selectedFile.type) && !selectedFile.name.match(/\.(xlsx|xls)$/i)) {
       toast.error('❌ Por favor, selecciona un archivo Excel (.xlsx o .xls)');
       return;
     }
 
     setFile(selectedFile);
-    
+
     if (mode === 'create') {
       previewExcel(selectedFile);
     }
@@ -77,7 +77,7 @@ export default function CargarExcel() {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-        
+
         setFullData(jsonData);
         setPreview(jsonData.slice(0, 10));
         toast.success(`✅ ${jsonData.length} productos encontrados`);
@@ -105,9 +105,9 @@ export default function CargarExcel() {
       for (let i = 0; i < fullData.length; i += CHUNK_SIZE) {
         chunks.push(fullData.slice(i, i + CHUNK_SIZE));
       }
-      
+
       setTotalChunks(chunks.length);
-      
+
       let totalInserted = 0;
       let allErrors = [];
       let allWarnings = [];
@@ -186,7 +186,7 @@ export default function CargarExcel() {
     try {
       const res = await itemService.previewBulkUpdate(file);
       setPreviewData(res.data);
-      
+
       // Seleccionar todos los cambios por defecto
       const seleccion = {};
       (res.data.cambios || []).forEach(c => {
@@ -194,7 +194,7 @@ export default function CargarExcel() {
       });
       setSelectedCambios(seleccion);
       setCurrentPage(1);
-      
+
       toast.success(`✅ Análisis completado: ${res.data.total_cambios} cambios detectados`);
     } catch (error) {
       console.error('Error al analizar:', error);
@@ -206,22 +206,22 @@ export default function CargarExcel() {
 
   const handleApplyBulkUpdate = async () => {
     if (!previewData) return;
-    
+
     const cambiosAplicar = previewData.cambios
       .filter(c => selectedCambios[c.item_id])
       .map(c => ({ item_id: c.item_id, stock_nuevo: c.stock_nuevo }));
-    
+
     if (cambiosAplicar.length === 0) {
       toast.error('No has seleccionado ningún cambio');
       return;
     }
-    
+
     if (!confirm(`¿Aplicar ${cambiosAplicar.length} cambios? Esta acción modificará el stock.`)) {
       return;
     }
-    
+
     setApplying(true);
-    
+
     try {
       const res = await itemService.applyBulkUpdate(cambiosAplicar);
       setResultado(res.data);
@@ -322,7 +322,7 @@ export default function CargarExcel() {
             Cargar Excel
           </h1>
           <p className="text-gray-400 mt-1">
-            {mode === 'update' 
+            {mode === 'update'
               ? 'Actualiza el stock desde un Excel comparando por código'
               : 'Sube un archivo Excel con productos nuevos'
             }
@@ -813,7 +813,7 @@ export default function CargarExcel() {
             </span>
           </div>
           <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-neon-blue to-neon-pink rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
@@ -838,7 +838,7 @@ export default function CargarExcel() {
               <p className="text-gray-300">
                 <span className="text-neon-green">Insertados:</span> {result.inserted} productos
               </p>
-              
+
               {result.warnings && result.warnings.length > 0 && (
                 <div className="mt-2 p-3 glass rounded-xl border border-yellow-500/20">
                   <p className="text-yellow-400 text-sm font-medium mb-2 flex items-center gap-2">
@@ -852,7 +852,7 @@ export default function CargarExcel() {
                   </div>
                 </div>
               )}
-              
+
               {result.errors && result.errors.length > 0 && (
                 <div className="mt-2 p-3 glass rounded-xl border border-neon-pink/20 max-h-64 overflow-y-auto">
                   <p className="text-neon-pink text-sm font-medium mb-2">

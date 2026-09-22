@@ -4,9 +4,8 @@ const API_URL = 'https://almacenes-app-production.up.railway.app';
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // ⚠️ NO poner 'Content-Type' por defecto aquí.
+  // Axios lo pone automáticamente según el body (JSON o FormData).
 });
 
 // ✅ Interceptor para forzar HTTPS y enviar email del usuario
@@ -19,11 +18,10 @@ api.interceptors.request.use(
     if (config.url && config.url.startsWith('http://')) {
       config.url = config.url.replace('http://', 'https://');
     }
-    
+
     // ✅ Enviar email del usuario logueado (si existe)
     if (typeof window !== 'undefined') {
       try {
-        // Intentar obtener el email desde Supabase Auth
         const authData = localStorage.getItem('sb-voiarysvrncxnyegsitm-auth-token');
         if (authData) {
           const parsed = JSON.parse(authData);
@@ -31,8 +29,7 @@ api.interceptors.request.use(
             config.headers['X-User-Email'] = parsed.user.email;
           }
         }
-        
-        // Fallback: buscar en localStorage 'user'
+
         if (!config.headers['X-User-Email']) {
           const userStr = localStorage.getItem('user');
           if (userStr) {
@@ -46,7 +43,7 @@ api.interceptors.request.use(
         // Silencioso
       }
     }
-    
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -69,18 +66,19 @@ export const itemService = {
   delete: (id) => api.delete(`/items/${id}/`),
   updateStock: (id, cantidad) => api.patch(`/items/${id}/stock`, null, { params: { cantidad } }),
   getStats: () => api.get('/items/stats/count'),
-  
-  // ✅ NUEVO: Analizar Excel sin modificar la BD
-  // Retorna: { total_filas, total_cambios, total_no_encontrados, total_errores, cambios: [...], no_encontrados: [...], errores: [...] }
+
+  // ✅ Analizar Excel sin modificar la BD
+  // Retorna: { total_filas, total_cambios, total_no_encontrados, total_errores, cambios, no_encontrados, errores }
   previewBulkUpdate: (file) => {
     const formData = new FormData();
     formData.append('file', file);
     return api.post('/items/preview-bulk-update', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      // Dejar que axios ponga el Content-Type con boundary automáticamente
+      headers: { 'Content-Type': undefined }
     });
   },
-  
-  // ✅ NUEVO: Aplicar los cambios aprobados
+
+  // ✅ Aplicar los cambios aprobados
   // Recibe: [{ item_id, stock_nuevo }, ...]
   // Retorna: { message, actualizados, errores, detalle_errores }
   applyBulkUpdate: (cambios) => {

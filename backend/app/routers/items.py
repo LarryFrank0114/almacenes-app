@@ -26,16 +26,58 @@ def normalizar_codigo(codigo):
     return s
 
 
-def encontrar_columna(headers, posibles_nombres):
-    """Busca una columna en los headers que coincida con alguno de los posibles nombres."""
-    for idx, h in enumerate(headers):
-        if h is None:
-            continue
-        h_norm = str(h).strip().lower()
-        for nombre in posibles_nombres:
-            if nombre in h_norm:
+def encontrar_columna(headers, posibles_nombres, excluir=None):
+    """
+    Busca una columna en los headers.
+    1) Primero intenta match exacto (normalizado).
+    2) Luego match por substring, excluyendo nombres que contengan
+       alguno de los términos en `excluir`.
+    """
+    excluir = excluir or []
+
+    headers_norm = [
+        str(h).strip().lower() if h is not None else ""
+        for h in headers
+    ]
+
+    # 1) Match exacto
+    for nombre in posibles_nombres:
+        n = nombre.lower()
+        for idx, h in enumerate(headers_norm):
+            if h == n:
                 return idx
+
+    # 2) Match por substring, respetando exclusiones
+    for nombre in posibles_nombres:
+        n = nombre.lower()
+        for idx, h in enumerate(headers_norm):
+            if n in h:
+                if any(ex in h for ex in excluir):
+                    continue
+                return idx
+
     return None
+
+
+def parsear_stock(v):
+    """Convierte un valor de celda a float de forma tolerante."""
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    if s == "":
+        return None
+    s = s.replace(" ", "")
+    if "," in s and "." in s:
+        # Formato español: 1.234,56
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return None
 
 
 # ============================================
@@ -54,24 +96,24 @@ def get_items(
 ):
     """Obtiene items con paginación."""
     query = db.query(Item).options(joinedload(Item.almacen)).filter(Item.activo == True)
-    
+
     if almacen_id:
         query = query.filter(Item.almacen_id == almacen_id)
     if categoria:
         query = query.filter(Item.categoria == categoria)
     if search:
         query = query.filter(
-            (Item.nombre.ilike(f"%{search}%")) | 
+            (Item.nombre.ilike(f"%{search}%")) |
             (Item.codigo.ilike(f"%{search}%"))
         )
     if stock_min is not None:
         query = query.filter(Item.stock >= stock_min)
     if stock_max is not None:
         query = query.filter(Item.stock <= stock_max)
-    
+
     total = query.count()
     items = query.order_by(Item.id).offset(skip).limit(limit).all()
-    
+
     return {
         "data": [ItemSchema.model_validate(item) for item in items],
         "total": total,
@@ -90,7 +132,7 @@ def get_items_stats(db: Session = Depends(get_db)):
         Item.activo == True,
         Item.stock <= Item.stock_minimo
     ).scalar()
-    
+
     valor_inventario = db.query(
         func.sum(
             func.coalesce(Item.stock, 0) * func.coalesce(Item.precio, 0)
@@ -108,7 +150,7 @@ def get_items_stats(db: Session = Depends(get_db)):
 @router.get("/{item_id}", response_model=ItemSchema)
 def get_item(item_id: int, db: Session = Depends(get_db)):
     item = db.query(Item).options(joinedload(Item.almacen)).filter(
-        Item.id == item_id, 
+        Item.id == item_id,
         Item.activo == True
     ).first()
     if not item:
@@ -118,7 +160,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=ItemSchema, status_code=status.HTTP_201_CREATED)
 def create_item(
-    item: ItemCreate, 
+    item: ItemCreate,
     request: Request,
     db: Session = Depends(get_db)
 ):
@@ -126,7 +168,7 @@ def create_item(
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
-    
+
     registrar_auditoria(
         db=db,
         accion="crear",
@@ -138,21 +180,21 @@ def create_item(
         usuario_email=None,
         request=request
     )
-    
+
     return db_item
 
 
 @router.put("/{item_id}", response_model=ItemSchema)
 def update_item(
-    item_id: int, 
-    item_update: ItemUpdate, 
+    item_id: int,
+    item_update: ItemUpdate,
     request: Request,
     db: Session = Depends(get_db)
 ):
     db_item = db.query(Item).filter(Item.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
-    
+
     datos_anteriores = {
         "nombre": db_item.nombre,
         "codigo": db_item.codigo,
@@ -166,14 +208,14 @@ def update_item(
         "ubicacion": db_item.ubicacion,
         "almacen_id": db_item.almacen_id,
     }
-    
+
     update_data = item_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_item, key, value)
-    
+
     db.commit()
     db.refresh(db_item)
-    
+
     datos_nuevos = {
         "nombre": db_item.nombre,
         "codigo": db_item.codigo,
@@ -187,7 +229,7 @@ def update_item(
         "ubicacion": db_item.ubicacion,
         "almacen_id": db_item.almacen_id,
     }
-    
+
     registrar_cambios_item(
         db=db,
         item_id=item_id,
@@ -196,26 +238,26 @@ def update_item(
         usuario_email=None,
         request=request
     )
-    
+
     return db_item
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_item(
-    item_id: int, 
+    item_id: int,
     request: Request,
     db: Session = Depends(get_db)
 ):
     db_item = db.query(Item).filter(Item.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
-    
+
     nombre_producto = db_item.nombre
     codigo_producto = db_item.codigo
-    
+
     db_item.activo = False
     db.commit()
-    
+
     registrar_auditoria(
         db=db,
         accion="eliminar",
@@ -227,30 +269,30 @@ def delete_item(
         usuario_email=None,
         request=request
     )
-    
+
     return None
 
 
 @router.patch("/{item_id}/stock")
 def update_stock(
-    item_id: int, 
-    cantidad: int = Query(...), 
+    item_id: int,
+    cantidad: int = Query(...),
     request: Request = None,
     db: Session = Depends(get_db)
 ):
     db_item = db.query(Item).filter(Item.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
-    
+
     stock_anterior = db_item.stock
     nueva_cantidad = db_item.stock + cantidad
     if nueva_cantidad < 0:
         raise HTTPException(status_code=400, detail="Stock no puede ser negativo")
-    
+
     db_item.stock = nueva_cantidad
     db.commit()
     db.refresh(db_item)
-    
+
     registrar_auditoria(
         db=db,
         accion="editar",
@@ -262,7 +304,7 @@ def update_stock(
         usuario_email=None,
         request=request
     )
-    
+
     return {"id": item_id, "stock": db_item.stock}
 
 
@@ -279,74 +321,105 @@ async def preview_bulk_update(
     Analiza un Excel y devuelve los cambios que se aplicarían, SIN modificar la BD.
     Solo requiere las columnas 'codigo' y 'stock'. Las demás son ignoradas.
     """
-    if not file.filename.endswith(('.xlsx', '.xls')):
-        raise HTTPException(status_code=400, detail="Solo se aceptan archivos Excel (.xlsx, .xls)")
-    
+    filename = (file.filename or "").lower()
+    if not filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Solo se aceptan archivos Excel (.xlsx, .xls). Recibido: {file.filename}"
+        )
+
     try:
         contents = await file.read()
         workbook = load_workbook(io.BytesIO(contents), data_only=True)
         sheet = workbook.active
-        
+
         # Leer encabezados (buscar la fila con "codigo" y "stock")
         headers = []
         header_row_idx = 0
-        for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_row=20, values_only=True), start=1):
-            row_values = [str(v).strip().lower() if v else "" for v in row]
-            if any("codigo" in v or "código" in v or "cod" == v for v in row_values) and \
-               any("stock" in v or "stock" in v or "cantidad" in v for v in row_values):
+        for row_idx, row in enumerate(sheet.iter_rows(min_row=1, max_row=50, values_only=True), start=1):
+            if not row:
+                continue
+            row_values = [str(v).strip().lower() if v is not None else "" for v in row]
+            tiene_codigo = any(
+                v in ("codigo", "código", "cod", "codigo_articulo", "código_articulo", "codigo articulo")
+                or "codigo" in v or "código" in v
+                for v in row_values
+            )
+            tiene_stock = any(
+                v == "stock" or v.startswith("stock") or v == "cantidad" or v == "cant"
+                for v in row_values
+            )
+            if tiene_codigo and tiene_stock:
                 headers = list(row)
                 header_row_idx = row_idx
                 break
-        
+
         if not headers:
-            raise HTTPException(status_code=400, detail="No se encontró una fila con columnas 'codigo' y 'stock' en el Excel")
-        
-        # Buscar índices de las columnas
-        idx_codigo = encontrar_columna(headers, ["codigo", "código", "cod", "código2"])
-        idx_stock = encontrar_columna(headers, ["stock", "stock ", "cantidad", "stoc"])
-        
+            raise HTTPException(
+                status_code=400,
+                detail="No se encontró una fila con columnas 'codigo' y 'stock' en el Excel. "
+                       f"Revisa que la hoja '{sheet.title}' tenga esas cabeceras."
+            )
+
+        # Buscar índices de las columnas (match exacto primero, con exclusiones)
+        idx_codigo = encontrar_columna(
+            headers,
+            ["codigo", "código", "codigo_articulo", "cod"],
+            excluir=["barra", "proveedor", "alterno"]
+        )
+
+        idx_stock = encontrar_columna(
+            headers,
+            ["stock", "cantidad", "cant", "stoc"],
+            excluir=["reservado", "minimo", "mínimo", "maximo", "máximo",
+                     "inicial", "disponible", "ingreso", "egreso"]
+        )
+
         if idx_codigo is None:
-            raise HTTPException(status_code=400, detail="No se encontró la columna 'codigo'")
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se encontró la columna 'codigo'. Cabeceras: {headers}"
+            )
         if idx_stock is None:
-            raise HTTPException(status_code=400, detail="No se encontró la columna 'stock'")
-        
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se encontró la columna 'stock'. Cabeceras: {headers}"
+            )
+
         cambios = []
         no_encontrados = []
         errores = []
         total_filas = 0
-        
+
         # Procesar cada fila
         for row in sheet.iter_rows(min_row=header_row_idx + 1, values_only=True):
             try:
                 if not row or all(v is None for v in row):
                     continue
-                
-                total_filas += 1
+
                 codigo_raw = row[idx_codigo] if idx_codigo < len(row) else None
                 stock_raw = row[idx_stock] if idx_stock < len(row) else None
-                
+
                 codigo = normalizar_codigo(codigo_raw)
-                
+
                 if not codigo:
                     continue
-                
-                # Ignorar filas que no sean códigos válidos (números o alfanuméricos sin espacios raros)
+
+                # Ignorar filas que no sean códigos válidos
                 if len(codigo) < 3 or len(codigo) > 30:
                     continue
-                
-                # Parsear stock
-                try:
-                    stock_nuevo = float(stock_raw) if stock_raw is not None and str(stock_raw).strip() != "" else None
-                except (ValueError, TypeError):
-                    stock_nuevo = None
-                
+
+                total_filas += 1
+
+                stock_nuevo = parsear_stock(stock_raw)
+
                 # Buscar el producto por código
                 db_item = db.query(Item).filter(Item.codigo == codigo).first()
-                
+
                 if db_item:
                     stock_anterior = db_item.stock or 0
                     stock_nuevo_final = stock_nuevo if stock_nuevo is not None else stock_anterior
-                    
+
                     if stock_anterior != stock_nuevo_final:
                         cambios.append({
                             "item_id": db_item.id,
@@ -359,10 +432,10 @@ async def preview_bulk_update(
                         })
                 else:
                     no_encontrados.append(codigo)
-                    
+
             except Exception as e:
                 errores.append(f"Fila con código {codigo_raw}: {str(e)}")
-        
+
         return {
             "total_filas": total_filas,
             "total_cambios": len(cambios),
@@ -372,7 +445,7 @@ async def preview_bulk_update(
             "no_encontrados": no_encontrados[:100],  # Limitar a 100
             "errores": errores[:20]
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -392,24 +465,24 @@ def apply_bulk_update(
     try:
         actualizados = 0
         errores = []
-        
+
         for cambio in cambios:
             try:
                 item_id = cambio.get("item_id")
                 stock_nuevo = cambio.get("stock_nuevo")
-                
+
                 if item_id is None or stock_nuevo is None:
                     continue
-                
+
                 db_item = db.query(Item).filter(Item.id == item_id).first()
                 if not db_item:
                     errores.append(f"Item {item_id} no encontrado")
                     continue
-                
+
                 stock_anterior = db_item.stock or 0
                 db_item.stock = float(stock_nuevo)
                 actualizados += 1
-                
+
                 # Registrar auditoría individual
                 registrar_auditoria(
                     db=db,
@@ -424,9 +497,9 @@ def apply_bulk_update(
                 )
             except Exception as e:
                 errores.append(f"Error al actualizar item {cambio.get('item_id')}: {str(e)}")
-        
+
         db.commit()
-        
+
         # Registrar evento global de importación
         registrar_auditoria(
             db=db,
@@ -439,14 +512,14 @@ def apply_bulk_update(
             usuario_email=None,
             request=request
         )
-        
+
         return {
             "message": "Actualización masiva completada",
             "actualizados": actualizados,
             "errores": len(errores),
             "detalle_errores": errores[:20]
         }
-    
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al aplicar cambios: {str(e)}")
